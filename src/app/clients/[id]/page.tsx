@@ -36,6 +36,7 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [enabling, setEnabling] = useState<{ socialdrive?: boolean; dmchamp?: boolean }>({});
+  const [disabling, setDisabling] = useState<{ socialdrive?: boolean; dmchamp?: boolean }>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,6 +80,35 @@ export default function ClientDetailPage() {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setEnabling({ [product]: false });
+    }
+  };
+
+  const disableProduct = async (product: 'socialdrive' | 'dmchamp') => {
+    if (!client) return;
+    
+    if (!confirm(`Are you sure you want to disable ${product === 'socialdrive' ? 'SocialDrive AI' : 'DM Champ'} for ${client.business_name}? This will remove their access.`)) {
+      return;
+    }
+    
+    setDisabling({ [product]: true });
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/clients/${client.id}/disable-${product}`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Failed to disable ${product}`);
+      }
+
+      const updated = await res.json();
+      setClient(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setDisabling({ [product]: false });
     }
   };
 
@@ -231,9 +261,18 @@ export default function ClientDetailPage() {
                       <p className="text-sm text-gray-500">€99/month</p>
                     </div>
                     {client.socialdrive_enabled ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Active
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                        <button
+                          onClick={() => disableProduct('socialdrive')}
+                          disabled={disabling.socialdrive}
+                          className="px-2 py-1 text-xs font-medium rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {disabling.socialdrive ? 'Disabling...' : 'Disable'}
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => enableProduct('socialdrive')}
@@ -252,9 +291,18 @@ export default function ClientDetailPage() {
                       <p className="text-sm text-gray-500">€49/month</p>
                     </div>
                     {client.dmchamp_enabled ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Active
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                        <button
+                          onClick={() => disableProduct('dmchamp')}
+                          disabled={disabling.dmchamp}
+                          className="px-2 py-1 text-xs font-medium rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {disabling.dmchamp ? 'Disabling...' : 'Disable'}
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => enableProduct('dmchamp')}
