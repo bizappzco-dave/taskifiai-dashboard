@@ -95,32 +95,26 @@ export async function POST(
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find user by email in our database
-    const { data: existingUser } = await supabase
-      .from('client_staff_access')
-      .select('user_id, users:users (id, email, raw_user_meta_data)')
-      .eq('invited_email', email)
-      .or(`invited_email.is.null, invited_email.eq.${email}`)
+    // First, check if user exists in auth.users by email
+    const { data: authUser, error: authError } = await supabase
+      .from('auth.users')
+      .select('id, email, raw_user_meta_data')
+      .eq('email', email)
       .maybeSingle();
 
     let userId: string | null = null;
     let userEmail: string | null = null;
     let userName: string | null = null;
 
-    if (existingUser?.users) {
-      const user = Array.isArray(existingUser.users)
-        ? existingUser.users[0]
-        : existingUser.users;
-      if (user) {
-        userId = user.id;
-        userEmail = user.email;
-        userName =
-          (user.raw_user_meta_data as any)?.fullName ||
-          (user.raw_user_meta_data as any)?.name;
-      }
+    if (authUser) {
+      userId = authUser.id;
+      userEmail = authUser.email;
+      userName =
+        (authUser.raw_user_meta_data as any)?.fullName ||
+        (authUser.raw_user_meta_data as any)?.name;
     }
 
-    // If user exists, add them directly
+    // If user exists in auth, add them directly
     if (userId) {
       const { data: access, error: accessError } = await supabase
         .from('client_staff_access')
