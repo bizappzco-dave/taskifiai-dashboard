@@ -350,6 +350,12 @@ export default function ClientDetailPage() {
                           → DM Champ Login
                         </a>
                       )}
+                      <Link
+                        href={`/clients/${client.id}/team`}
+                        className="block text-sm text-indigo-600 hover:text-indigo-900"
+                      >
+                        → Manage Team
+                      </Link>
                     </div>
                   </div>
                 )}
