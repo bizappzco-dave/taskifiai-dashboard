@@ -5,14 +5,12 @@ import Link from 'next/link';
 
 interface Client {
   id: string;
-  business_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
+  name: string;
   industry: string;
+  email?: string;
   created_at: string;
-  socialdrive_enabled: boolean;
-  dmchamp_enabled: boolean;
+  socialdrive_enabled?: boolean;
+  dmchamp_enabled?: boolean;
 }
 
 export default function DashboardPage() {
@@ -40,9 +38,8 @@ export default function DashboardPage() {
 
   const filteredClients = clients.filter(
     (client) =>
-      client.business_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -127,11 +124,10 @@ export default function DashboardPage() {
                 {filteredClients.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{client.business_name}</div>
+                      <div className="text-sm font-medium text-gray-900">{client.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{client.contact_name}</div>
-                      <div className="text-sm text-gray-500">{client.email}</div>
+                      <div className="text-sm text-gray-900">{client.email || 'No email'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{client.industry}</div>
