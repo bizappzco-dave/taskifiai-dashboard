@@ -1,1 +1,20 @@
-{}
+{
+  "/_not-found": "app/_not-found.js",
+  "/api/clients/[id]/brand-context/route": "app/api/clients/[id]/brand-context/route.js",
+  "/api/clients/[id]/connect-upload-post/route": "app/api/clients/[id]/connect-upload-post/route.js",
+  "/api/clients/[id]/disable-socialdrive/route": "app/api/clients/[id]/disable-socialdrive/route.js",
+  "/api/clients/[id]/disable-dmchamp/route": "app/api/clients/[id]/disable-dmchamp/route.js",
+  "/api/clients/[id]/enable-dmchamp/route": "app/api/clients/[id]/enable-dmchamp/route.js",
+  "/api/clients/[id]/enable-socialdrive/route": "app/api/clients/[id]/enable-socialdrive/route.js",
+  "/api/clients/[id]/route": "app/api/clients/[id]/route.js",
+  "/api/clients/[id]/staff/route": "app/api/clients/[id]/staff/route.js",
+  "/api/clients/route": "app/api/clients/route.js",
+  "/api/test-env/route": "app/api/test-env/route.js",
+  "/api/webhooks/dmchamp/route": "app/api/webhooks/dmchamp/route.js",
+  "/api/webhooks/socialdrive/route": "app/api/webhooks/socialdrive/route.js",
+  "/clients/[id]/page": "app/clients/[id]/page.js",
+  "/clients/[id]/team/page": "app/clients/[id]/team/page.js",
+  "/clients/new/page": "app/clients/new/page.js",
+  "/page": "app/page.js",
+  "/social-lites/page": "app/social-lites/page.js"
+}

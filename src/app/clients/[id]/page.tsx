@@ -6,25 +6,24 @@ import Link from 'next/link';
 
 interface Client {
   id: string;
-  business_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
+  name: string;
   industry: string;
-  website: string;
-  instagram_handle: string;
-  facebook_handle: string;
-  linkedin_handle: string;
-  brand_tone: string;
-  target_audience: string;
-  usps: string;
-  competitors: string;
-  content_goals: string;
-  posting_frequency: string;
-  subscription_tier: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  instagram_handle?: string;
+  facebook_handle?: string;
+  linkedin_handle?: string;
+  brand_tone?: string;
+  target_audience?: string;
+  usps?: string;
+  competitors?: string;
+  content_goals?: string;
+  posting_frequency?: string;
+  tier?: string;
   created_at: string;
-  socialdrive_enabled: boolean;
-  dmchamp_enabled: boolean;
+  socialdrive_enabled?: boolean;
+  dmchamp_enabled?: boolean;
   socialdrive_upload_url?: string;
   socialdrive_dashboard_url?: string;
   dmchamp_login_url?: string;
@@ -94,7 +93,7 @@ export default function ClientDetailPage() {
   const disableProduct = async (product: 'socialdrive' | 'dmchamp') => {
     if (!client) return;
     
-    if (!confirm(`Are you sure you want to disable ${product === 'socialdrive' ? 'SocialDrive AI' : 'DM Champ'} for ${client.business_name}? This will remove their access.`)) {
+    if (!confirm(`Are you sure you want to disable ${product === 'socialdrive' ? 'SocialDrive AI' : 'DM Champ'} for ${client.name}? This will remove their access.`)) {
       return;
     }
     
@@ -260,13 +259,13 @@ export default function ClientDetailPage() {
                 ← Back
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{client.business_name}</h1>
-                <p className="text-gray-500 mt-1">{client.contact_name}</p>
+                <h1 className="text-3xl font-bold text-gray-900">{client.name}</h1>
+                <p className="text-gray-500 mt-1">{client.industry}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 capitalize">
-                {client.subscription_tier}
+                {client.tier}
               </span>
               {!editing ? (
                 <button
