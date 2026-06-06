@@ -15,7 +15,7 @@ export async function GET(
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: staff, error } = await supabase
+    const { data: staff, error: staffError } = await supabase
       .from('client_staff_access')
       .select(`
         id,
@@ -28,19 +28,25 @@ export async function GET(
       .eq('client_id', params.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (staffError) {
+      console.error('Failed to fetch staff:', staffError);
+      throw staffError;
+    }
 
     // Get user details for staff with user_id
     const userIds = staff.filter((s) => s.user_id).map((s) => s.user_id);
     let userMap = new Map();
 
     if (userIds.length > 0) {
-      const { data: users } = await supabase
+      const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, email, raw_user_meta_data')
         .in('id', userIds);
 
-      if (users) {
+      if (usersError) {
+        console.error('Failed to fetch users:', usersError);
+        // Continue without user details
+      } else if (users) {
         users.forEach((u) => {
           userMap.set(u.id, u);
         });
@@ -63,7 +69,7 @@ export async function GET(
 
     return NextResponse.json({ staff: formattedStaff });
   } catch (error: any) {
-    console.error('List staff error:', error.message);
+    console.error('List staff error:', error.message, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
