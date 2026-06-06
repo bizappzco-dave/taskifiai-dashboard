@@ -43,6 +43,9 @@ export default function ClientDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [connectingUploadPost, setConnectingUploadPost] = useState(false);
   const [uploadPostConnectUrl, setUploadPostConnectUrl] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Client>>({});
 
   useEffect(() => {
     if (params.id) {
@@ -176,6 +179,52 @@ export default function ClientDetailPage() {
     }
   };
 
+  const startEditing = () => {
+    if (client) {
+      setEditForm({ ...client });
+      setEditing(true);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setEditForm({});
+  };
+
+  const saveChanges = async () => {
+    if (!client) return;
+    
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to save changes');
+      }
+
+      const updated = await res.json();
+      setClient(updated);
+      setEditing(false);
+      setEditForm({});
+      alert('Client details updated successfully!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateEditForm = (field: keyof Client, value: string) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -219,6 +268,30 @@ export default function ClientDetailPage() {
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 capitalize">
                 {client.subscription_tier}
               </span>
+              {!editing ? (
+                <button
+                  onClick={startEditing}
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                >
+                  Edit
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={cancelEditing}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 bg-gray-100 hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveChanges}
+                    disabled={saving}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -240,30 +313,73 @@ export default function ClientDetailPage() {
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h2>
                 <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Email</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.email}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Phone</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.phone || 'Not provided'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Industry</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.industry || 'Not specified'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Website</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {client.website ? (
-                        <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900">
-                          {client.website}
-                        </a>
-                      ) : (
-                        'Not provided'
-                      )}
-                    </dd>
-                  </div>
+                  {!editing ? (
+                    <>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Email</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.email}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.phone || 'Not provided'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Industry</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.industry || 'Not specified'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Website</dt>
+                        <dd className="mt-1 text-sm text-gray-900">
+                          {client.website ? (
+                            <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900">
+                              {client.website}
+                            </a>
+                          ) : (
+                            'Not provided'
+                          )}
+                        </dd>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={editForm.email || ''}
+                          onChange={(e) => updateEditForm('email', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input
+                          type="tel"
+                          value={editForm.phone || ''}
+                          onChange={(e) => updateEditForm('phone', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+                        <input
+                          type="text"
+                          value={editForm.industry || ''}
+                          onChange={(e) => updateEditForm('industry', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                        <input
+                          type="url"
+                          value={editForm.website || ''}
+                          onChange={(e) => updateEditForm('website', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </>
+                  )}
                 </dl>
               </div>
             </div>
@@ -273,18 +389,53 @@ export default function ClientDetailPage() {
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Social Media</h2>
                 <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Instagram</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.instagram_handle || 'Not provided'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Facebook</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.facebook_handle || 'Not provided'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">LinkedIn</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{client.linkedin_handle || 'Not provided'}</dd>
-                  </div>
+                  {!editing ? (
+                    <>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Instagram</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.instagram_handle || 'Not provided'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Facebook</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.facebook_handle || 'Not provided'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">LinkedIn</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{client.linkedin_handle || 'Not provided'}</dd>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                        <input
+                          type="text"
+                          value={editForm.instagram_handle || ''}
+                          onChange={(e) => updateEditForm('instagram_handle', e.target.value)}
+                          placeholder="@username"
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                        <input
+                          type="text"
+                          value={editForm.facebook_handle || ''}
+                          onChange={(e) => updateEditForm('facebook_handle', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+                        <input
+                          type="text"
+                          value={editForm.linkedin_handle || ''}
+                          onChange={(e) => updateEditForm('linkedin_handle', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </>
+                  )}
                 </dl>
               </div>
             </div>
