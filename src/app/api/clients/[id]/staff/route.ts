@@ -33,19 +33,19 @@ export async function GET(
       throw staffError;
     }
 
-    // Get user details for staff with user_id
+    // Get user details for staff with user_id (from auth.users schema)
     const userIds = staff.filter((s) => s.user_id).map((s) => s.user_id);
     let userMap = new Map();
 
     if (userIds.length > 0) {
       const { data: users, error: usersError } = await supabase
-        .from('users')
+        .from('auth.users')
         .select('id, email, raw_user_meta_data')
         .in('id', userIds);
 
       if (usersError) {
-        console.error('Failed to fetch users:', usersError);
-        // Continue without user details
+        console.error('Failed to fetch auth users:', usersError);
+        // Continue without user details - will use invited_email
       } else if (users) {
         users.forEach((u) => {
           userMap.set(u.id, u);
