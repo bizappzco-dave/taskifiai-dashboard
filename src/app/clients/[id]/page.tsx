@@ -28,6 +28,9 @@ interface Client {
   socialdrive_upload_url?: string;
   socialdrive_dashboard_url?: string;
   dmchamp_login_url?: string;
+  upload_post_user_id?: string;
+  upload_post_username?: string;
+  upload_post_connected?: boolean;
 }
 
 export default function ClientDetailPage() {
@@ -38,6 +41,8 @@ export default function ClientDetailPage() {
   const [enabling, setEnabling] = useState<{ socialdrive?: boolean; dmchamp?: boolean }>({});
   const [disabling, setDisabling] = useState<{ socialdrive?: boolean; dmchamp?: boolean }>({});
   const [error, setError] = useState<string | null>(null);
+  const [connectingUploadPost, setConnectingUploadPost] = useState(false);
+  const [uploadPostConnectUrl, setUploadPostConnectUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -109,6 +114,65 @@ export default function ClientDetailPage() {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setDisabling({ [product]: false });
+    }
+  };
+
+  const connectUploadPost = async () => {
+    if (!client) return;
+    
+    setConnectingUploadPost(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/clients/${client.id}/connect-upload-post`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to generate connect URL');
+      }
+
+      const data = await res.json();
+      setUploadPostConnectUrl(data.connect_url);
+      
+      // Open connect URL in popup
+      if (data.connect_url) {
+        const popup = window.open(
+          data.connect_url,
+          'Connect Social Accounts',
+          'width=600,height=700,scrollbars=yes,resizable=yes'
+        );
+        
+        // Poll for connection status every 3 seconds
+        const pollInterval = setInterval(async () => {
+          const statusRes = await fetch(`/api/clients/${client.id}/connect-upload-post`);
+          const statusData = await statusRes.json();
+          
+          if (statusData.connected) {
+            clearInterval(pollInterval);
+            // Refresh client data
+            fetchClient(client.id);
+            setUploadPostConnectUrl(null);
+            alert('Social accounts connected successfully!');
+          }
+        }, 3000);
+        
+        // Stop polling if popup is closed
+        const checkPopup = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkPopup);
+            // Continue polling for 30 more seconds in case they're still connecting
+            setTimeout(() => {
+              clearInterval(pollInterval);
+            }, 30000);
+          }
+        }, 1000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setConnectingUploadPost(false);
     }
   };
 
@@ -313,6 +377,47 @@ export default function ClientDetailPage() {
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* Connected Accounts */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Connected Accounts</h3>
+                  <div className="space-y-3">
+                    {/* Instagram */}
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                          <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Instagram</p>
+                          {client.upload_post_username ? (
+                            <p className="text-xs text-gray-500">@{client.upload_post_username}</p>
+                          ) : (
+                            <p className="text-xs text-gray-500">Not connected</p>
+                          )}
+                        </div>
+                      </div>
+                      {client.upload_post_connected ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Connected
+                        </span>
+                      ) : (
+                        <button
+                          onClick={connectUploadPost}
+                          disabled={connectingUploadPost}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {connectingUploadPost ? 'Connecting...' : 'Connect'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Connect Instagram to enable automated posting via Upload-Post
+                  </p>
                 </div>
 
                 {/* Product Links */}
