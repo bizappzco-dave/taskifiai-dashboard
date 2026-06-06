@@ -15,8 +15,9 @@ export async function GET(
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Explicitly specify schema for client_staff_access
     const { data: staff, error: staffError } = await supabase
-      .from('client_staff_access')
+      .from('public.client_staff_access')
       .select(`
         id,
         user_id,
