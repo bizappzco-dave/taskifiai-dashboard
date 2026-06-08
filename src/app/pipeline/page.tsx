@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { Phone, MessageCircle, Mail, Plus, Calendar, DollarSign, X } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 
@@ -66,7 +66,7 @@ export default function LeadPipeline() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
 
-  const supabase = createClient();
+  const supabase = getSupabase();
 
   useEffect(() => {
     fetchLeads();
