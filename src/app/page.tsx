@@ -132,6 +132,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link
+                href="/pipeline"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                📊 Lead Pipeline
+              </Link>
+              <Link
                 href="/clients/new"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
