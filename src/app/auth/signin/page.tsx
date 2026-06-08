@@ -9,6 +9,7 @@ export default function SignInPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showReset, setShowReset] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,7 +40,7 @@ export default function SignInPage() {
 
         setMessage('✅ Signed in successfully! Redirecting...')
         setTimeout(() => {
-          window.location.href = '/dashboard'
+          window.location.href = '/'
         }, 1500)
       }
     } catch (error: any) {
@@ -47,6 +48,95 @@ export default function SignInPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    const supabase = getSupabase()
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      })
+
+      if (error) throw error
+
+      setMessage('✅ Password reset email sent! Check your inbox.')
+      setShowReset(false)
+      setEmail('')
+    } catch (error: any) {
+      setMessage(`❌ ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (showReset) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Reset Password
+            </h1>
+            <p className="text-gray-600">
+              Enter your email to receive a password reset link
+            </p>
+          </div>
+
+          {message && (
+            <div className={`mb-6 p-4 rounded-lg ${message.startsWith('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setShowReset(false)
+                setMessage('')
+              }}
+              className="text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              ← Back to Sign In
+            </button>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <a href="/" className="text-center block text-sm text-gray-500 hover:text-gray-700">
+              ← Back to Home
+            </a>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -95,6 +185,17 @@ export default function SignInPage() {
               minLength={6}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+            {!isSignUp && (
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowReset(true)}
+                  className="text-sm text-indigo-600 hover:text-indigo-700"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </div>
 
           <button
