@@ -22,8 +22,8 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Redirect to posting dashboard
-        router.push('/client/posting')
+        // Redirect to main dashboard
+        router.push('/')
       } catch (err: any) {
         setError(err.message || 'Authentication failed')
       }
