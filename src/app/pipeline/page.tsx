@@ -2,25 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@dnd-kit/core';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Phone, MessageCircle, Mail, Plus, Calendar, DollarSign } from 'lucide-react';
+import { Phone, MessageCircle, Mail, Plus, Calendar, DollarSign, X } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 
 const PIPELINE_STAGES = [
@@ -33,7 +15,7 @@ const PIPELINE_STAGES = [
   { id: 'lost', label: 'Lost', color: 'bg-gray-500' },
 ] as const;
 
-const SOURCE_COLORS = {
+const SOURCE_COLORS: Record<string, string> = {
   whatsapp: 'bg-green-100 text-green-800',
   gmail: 'bg-red-100 text-red-800',
   instagram_dm: 'bg-pink-100 text-pink-800',
@@ -43,7 +25,7 @@ const SOURCE_COLORS = {
   manual: 'bg-gray-100 text-gray-800',
 };
 
-const SOURCE_LABELS = {
+const SOURCE_LABELS: Record<string, string> = {
   whatsapp: 'WhatsApp',
   gmail: 'Gmail',
   instagram_dm: 'Instagram',
@@ -57,11 +39,11 @@ interface Lead {
   id: string;
   contact_id: string;
   client_id: string;
-  source: keyof typeof SOURCE_COLORS;
+  source: string;
   activity_id: string | null;
   assigned_user_id: string | null;
   value: number;
-  status: (typeof PIPELINE_STAGES)[number]['id'];
+  status: string;
   next_follow_up_date: string | null;
   notes: string;
   won_lost_reason: string;
@@ -82,7 +64,6 @@ export default function LeadPipeline() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
 
   const supabase = createClient();
@@ -117,12 +98,7 @@ export default function LeadPipeline() {
     }
   }
 
-  async function handleDragEnd(result: DropResult) {
-    if (!result.destination) return;
-
-    const newStatus = result.destination.droppableId as Lead['status'];
-    const leadId = result.draggableId;
-
+  async function updateLeadStatus(leadId: string, newStatus: string) {
     // Optimistic update
     setLeads(prev =>
       prev.map(lead =>
@@ -140,14 +116,12 @@ export default function LeadPipeline() {
       if (error) throw error;
     } catch (error) {
       console.error('Error updating lead:', error);
-      // Revert on error
       fetchLeads();
     }
   }
 
   function handleLeadClick(lead: Lead) {
     setSelectedLead(lead);
-    setIsDetailOpen(true);
   }
 
   function getFollowUpBadge(lead: Lead) {
@@ -173,127 +147,132 @@ export default function LeadPipeline() {
           <p className="text-gray-500">Track prospects from first contact to won/lost</p>
         </div>
         <div className="flex gap-2">
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sources</SelectItem>
-              {Object.entries(SOURCE_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">All Sources</option>
+            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+            <Plus className="w-4 h-4" />
             Add Lead
-          </Button>
+          </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">Loading leads...</div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading leads...</p>
+        </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {PIPELINE_STAGES.map((stage) => (
-            <Droppable key={stage.id} droppableId={stage.id}>
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-3"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={`w-3 h-3 rounded-full ${stage.color}`} />
-                    <h2 className="font-semibold">{stage.label}</h2>
-                    <Badge variant="secondary" className="ml-auto">
-                      {leads.filter(l => l.status === stage.id).length}
-                    </Badge>
-                  </div>
+            <div
+              key={stage.id}
+              className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-3"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-3 h-3 rounded-full ${stage.color}`} />
+                <h2 className="font-semibold">{stage.label}</h2>
+                <span className="ml-auto text-xs bg-gray-200 px-2 py-1 rounded">
+                  {leads.filter(l => l.status === stage.id).length}
+                </span>
+              </div>
 
-                  <div className="space-y-2">
-                    {leads
-                      .filter(lead => lead.status === stage.id)
-                      .map((lead, index) => (
-                        <Draggable key={lead.id} draggableId={lead.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`bg-white rounded-lg p-3 shadow-sm border cursor-pointer hover:shadow-md transition-shadow ${
-                                snapshot.isDragging ? 'shadow-lg rotate-2' : ''
-                              }`}
-                              onClick={() => handleLeadClick(lead)}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <h3 className="font-medium text-sm">
-                                    {lead.contact?.name || 'Unknown'}
-                                  </h3>
-                                  <p className="text-xs text-gray-500">
-                                    {lead.client?.name || 'Unknown Business'}
-                                  </p>
-                                </div>
-                                <Badge
-                                  variant="secondary"
-                                  className={`text-xs ${SOURCE_COLORS[lead.source]}`}
-                                >
-                                  {SOURCE_LABELS[lead.source]}
-                                </Badge>
-                              </div>
+              <div className="space-y-2">
+                {leads
+                  .filter(lead => lead.status === stage.id)
+                  .map((lead) => (
+                    <div
+                      key={lead.id}
+                      className="bg-white rounded-lg p-3 shadow-sm border cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleLeadClick(lead)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium text-sm">
+                            {lead.contact?.name || 'Unknown'}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {lead.client?.name || 'Unknown Business'}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${SOURCE_COLORS[lead.source]}`}>
+                          {SOURCE_LABELS[lead.source]}
+                        </span>
+                      </div>
 
-                              {lead.value > 0 && (
-                                <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                                  <DollarSign className="w-3 h-3" />
-                                  <span>£{lead.value.toLocaleString()}</span>
-                                </div>
-                              )}
+                      {lead.value > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
+                          <DollarSign className="w-3 h-3" />
+                          <span>£{lead.value.toLocaleString()}</span>
+                        </div>
+                      )}
 
-                              {getFollowUpBadge(lead)}
+                      {getFollowUpBadge(lead)}
 
-                              <div className="flex gap-1 mt-3 pt-2 border-t">
-                                {lead.contact?.phone && (
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    <Phone className="w-3 h-3" />
-                                  </Button>
-                                )}
-                                {lead.contact?.email && (
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    <Mail className="w-3 h-3" />
-                                  </Button>
-                                )}
-                                {lead.contact?.phone && (
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    <MessageCircle className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                    {provided.placeholder}
-                  </div>
-                </div>
-              )}
-            </Droppable>
+                      <div className="flex gap-1 mt-3 pt-2 border-t">
+                        {lead.contact?.phone && (
+                          <button className="h-7 w-7 p-0 hover:bg-gray-100 rounded">
+                            <Phone className="w-3 h-3" />
+                          </button>
+                        )}
+                        {lead.contact?.email && (
+                          <button className="h-7 w-7 p-0 hover:bg-gray-100 rounded">
+                            <Mail className="w-3 h-3" />
+                          </button>
+                        )}
+                        {lead.contact?.phone && (
+                          <button className="h-7 w-7 p-0 hover:bg-gray-100 rounded">
+                            <MessageCircle className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Quick status change */}
+                      <div className="mt-2 pt-2 border-t">
+                        <select
+                          value={lead.status}
+                          onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full text-xs border border-gray-300 rounded px-2 py-1"
+                        >
+                          {PIPELINE_STAGES.map(s => (
+                            <option key={s.id} value={s.id}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Lead Detail Dialog */}
+      {/* Lead Detail Modal */}
       {selectedLead && (
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold">
                 {selectedLead.contact?.name || 'Unknown'} - {selectedLead.client?.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
+              </h2>
+              <button
+                onClick={() => setSelectedLead(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium mb-2">Contact Info</h4>
@@ -307,6 +286,9 @@ export default function LeadPipeline() {
                   </p>
                   <p className="text-sm text-gray-600">
                     Value: £{selectedLead.value.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Status: {PIPELINE_STAGES.find(s => s.id === selectedLead.status)?.label}
                   </p>
                 </div>
               </div>
@@ -327,8 +309,8 @@ export default function LeadPipeline() {
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       )}
     </div>
   );
