@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabase } from '@/lib/supabase'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -15,7 +15,7 @@ export default function SignInPage() {
     setLoading(true)
     setMessage('')
 
-    const supabase = createClient()
+    const supabase = getSupabase()
 
     try {
       if (isSignUp) {
