@@ -9,7 +9,6 @@ interface Client {
   id: string;
   name: string;
   industry: string;
-  email?: string;
   upload_token?: string;
   review_token?: string;
   tier?: string;
@@ -64,7 +63,7 @@ export default function DashboardPage() {
       // Get clients owned by user
       const { data: ownedClients, error: ownedError } = await supabase
         .from('clients')
-        .select('id, name, industry, email, upload_token, review_token, tier, user_id, created_at, socialdrive_enabled, dmchamp_enabled')
+        .select('id, name, industry, upload_token, review_token, tier, user_id, created_at, socialdrive_enabled, dmchamp_enabled')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
