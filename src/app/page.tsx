@@ -14,6 +14,7 @@ interface Client {
   tier?: string;
   user_id?: string;
   created_at: string;
+  upload_post_connected?: boolean;
   socialdrive_enabled?: boolean;
   dmchamp_enabled?: boolean;
 }
@@ -29,6 +30,7 @@ interface StaffAccess {
     review_token?: string;
     tier?: string;
     created_at: string;
+    upload_post_connected?: boolean;
     socialdrive_enabled?: boolean;
     dmchamp_enabled?: boolean;
   };
@@ -63,7 +65,7 @@ export default function DashboardPage() {
       // Get clients owned by user
       const { data: ownedClients, error: ownedError } = await supabase
         .from('clients')
-        .select('id, name, industry, upload_token, review_token, tier, user_id, created_at, socialdrive_enabled, dmchamp_enabled')
+        .select('id, name, industry, upload_token, review_token, tier, user_id, created_at, upload_post_connected')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       // Get clients where user is staff
       const { data: staffAccess, error: staffError } = await supabase
         .from('client_staff_access')
-        .select('client_id, role, clients:client_id (id, name, industry, upload_token, review_token, tier, created_at, socialdrive_enabled, dmchamp_enabled)')
+        .select('client_id, role, clients:client_id (id, name, industry, upload_token, review_token, tier, created_at, upload_post_connected)')
         .eq('user_id', currentUser.id);
 
       if (staffError) throw staffError;
@@ -92,7 +94,11 @@ export default function DashboardPage() {
           uniqueClientsMap.set(c.id, c);
         }
       });
-      const uniqueClients = Array.from(uniqueClientsMap.values());
+      const uniqueClients = Array.from(uniqueClientsMap.values()).map((client) => ({
+        ...client,
+        socialdrive_enabled: !!(client.upload_token || client.review_token || client.upload_post_connected),
+        dmchamp_enabled: false,
+      }));
 
       setClients(uniqueClients);
     } catch (err: any) {
