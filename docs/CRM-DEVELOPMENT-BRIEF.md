@@ -2,8 +2,8 @@
 
 **Date:** 2026-06-08  
 **Project:** TaskifiAI Dashboard (Integrated CRM)  
-**Status:** MVP Database + UI Complete, Integration Pending  
-**Next Session:** Continue from this brief
+**Status:** Priority 1 activity logging verified in production; webhook audit table added and production webhook routes confirmed working  
+**Next Session:** Move to Priority 2 RLS, or optionally add preview env vars if preview deployments need full build parity
 
 ---
 
@@ -62,63 +62,35 @@
 
 ## 🚧 What's Missing (Prioritized)
 
-### **Priority 1: Activity Logging Integration** (CRITICAL)
+### **Priority 1: Activity Logging Integration** (COMPLETED)
 
-**Problem:** Auto-create trigger exists, but nothing is writing to `activities` table yet.
+**Resolved:**
+- DM Champ webhook route now logs normalized CRM activities and processed webhook records
+- SocialDrive webhook route now logs normalized CRM activities and processed webhook records
+- Lead auto-create now reads the live activity payload shape (`contact_id`, `details`, `client_id`)
+- Deduplication verified: repeat inbound messages within 24h do not create duplicate leads
+- Missing `public.webhooks` table was added via migration `005_create_webhooks_table`
 
-**What Needs Done:**
+**Production verification completed:**
+1. DM Champ production route returned `{"success":true,"activity_logged":true}`
+2. Activity created in `public.activities` with `activity_type = 'whatsapp_received'`
+3. Lead created in `public.leads` for a fresh contact
+4. Second inbound message for the same contact kept `lead_count = 1`
+5. SocialDrive production route returned `{"success":true,"activity_logged":true}`
+6. Review webhook created `activity_type = 'review_received'`
 
-1. **SocialDrive Integration**
-   - Hook post creation → `activity_type = 'post_created'`
-   - Hook post published → `activity_type = 'post_published'`
-   - Hook review received → `activity_type = 'review_received'`
-   - Metadata: `{ post_id, platform, caption, image_count }`
+**Files modified:**
+- `/src/app/api/webhooks/dmchamp/route.ts`
+- `/src/app/api/webhooks/socialdrive/route.ts`
+- `/src/lib/activities/webhook-events.ts`
+- `/src/lib/queries.ts`
+- `/supabase/migrations/003_activity_logging_integration_fix.sql`
+- `/supabase/migrations/004_lead_assignment_fk_guard.sql`
+- `/supabase/migrations/005_create_webhooks_table.sql`
 
-2. **DM Champ Integration** (when built)
-   - Hook message sent → `activity_type = 'message_sent'`
-   - Hook message received → `activity_type = 'message_received'`
-   - Metadata: `{ channel, contact_id, content }`
-
-3. **Website Form Integration**
-   - Hook form submission → `activity_type = 'form_submitted'`
-   - Metadata: `{ form_name, contact_email, contact_phone, message }`
-
-4. **GBP Integration** (when built)
-   - Hook review received → `activity_type = 'review_received'`
-   - Hook call received → `activity_type = 'gbp_call_received'`
-   - Metadata: `{ rating, review_text, reviewer_name }`
-
-5. **Email Integration** (when built)
-   - Hook email sent → `activity_type = 'email_sent'`
-   - Hook email received → `activity_type = 'email_received'`
-   - Metadata: `{ contact_id, subject, direction }`
-
-6. **WhatsApp Integration** (when built)
-   - Hook message sent → `activity_type = 'whatsapp_message_sent'`
-   - Hook message received → `activity_type = 'whatsapp_message_received'`
-   - Metadata: `{ contact_id, phone, content }`
-
-**Files to Modify:**
-- SocialDrive: `/src/app/api/webhooks/socialdrive/route.ts` (add activity logging)
-- Form submissions: Wherever forms are processed
-- Each integration point needs to INSERT into `activities` table
-
-**Example Activity Insert:**
-```typescript
-await supabase.from('activities').insert({
-  client_id: clientId,
-  contact_id: contactId, // if known
-  activity_type: 'post_published',
-  activity_category: 'marketing',
-  source: 'instagram',
-  title: 'Instagram post published',
-  description: `Published to ${platform}`,
-  details: { post_id, platform, caption },
-  occurred_at: new Date().toISOString()
-})
-```
-
-**Why Critical:** Without activity logging, auto-create never triggers. Leads must be manual-only until this is done.
+**Notes:**
+- Production env-backed deployment now builds and `/pipeline` loads successfully
+- Preview deploys still need preview env vars if you want preview builds to pass the same `/pipeline` prerender step
 
 ---
 
@@ -398,10 +370,10 @@ UPLOAD_POST_PROFILE_USERNAME=Taskifi-AI
 ## 🎯 Next Session Starting Points
 
 ### Option A: Finish CRM Backend (Recommended)
-1. Enable RLS on `activity_types` and `lead_creation_rules`
-2. Add activity logging to SocialDrive webhook
-3. Test auto-create with real activity
-4. Build activity feed UI
+1. Provide valid `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
+2. Re-run local webhook POST tests against `/api/webhooks/dmchamp` and `/api/webhooks/socialdrive`
+3. Confirm activities appear in the feed and lead auto-create works through the app path
+4. Then move to Priority 2 RLS hardening
 
 ### Option B: UI Polish with Codex
 1. Let Codex redesign main dashboard
@@ -420,13 +392,14 @@ UPLOAD_POST_PROFILE_USERNAME=Taskifi-AI
 **For Next Session:**
 
 1. **Load this brief** - It has all context needed
-2. **Check git status** - See what's deployed vs. in progress
-3. **Pick a priority** - Start with Priority 1 (Activity Logging) or 2 (RLS Security)
-4. **Document as you go** - Save skills + memory after each significant task
+2. **Check git status** - Review the Priority 1 webhook + migration changes before adding more
+3. **Fix local env first** - `.env.local` currently contains placeholder values for required Supabase vars, which blocks `/pipeline` build/prerender and local webhook testing
+4. **Priority 1 status** - DM Champ + SocialDrive webhook activity mapping is implemented; live SQL verification confirmed `whatsapp_received` creates one lead and dedupes the second activity within 24h
+5. **Next priority** - After env-backed verification, continue with Priority 2 (RLS on `activity_types` and `lead_creation_rules`)
 
-**Current Branch:** `main` (clean, up to date)  
-**Last Commit:** "Fix: Remove email column from clients query"  
-**Deployment:** In progress (fix email column error)
+**Current Branch:** `main`  
+**Last Known Blocker:** local runtime/build fail with `NEXT_PUBLIC_SUPABASE_URL is not set` because `.env.local` values are placeholders  
+**Live DB:** migrations `003_activity_logging_integration_fix` and `004_lead_assignment_fk_guard` applied to project `nmebpawvnhrokouksvir`
 
 ---
 
