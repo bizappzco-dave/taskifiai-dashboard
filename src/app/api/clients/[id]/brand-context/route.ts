@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 /**
  * GET /api/clients/[id]/brand-context
@@ -13,7 +10,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseAdmin();
     const clientId = params.id;
 
     const { data: brandContext, error } = await supabase
@@ -24,14 +21,12 @@ export async function GET(
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No brand context yet
         return NextResponse.json({ brandContext: null });
       }
       throw error;
     }
 
     return NextResponse.json({ brandContext });
-
   } catch (error: any) {
     console.error('Get brand context error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -47,11 +42,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseAdmin();
     const clientId = params.id;
     const body = await request.json();
 
-    // Check if brand context exists
     const { data: existing } = await supabase
       .from('brand_contexts')
       .select('id')
@@ -59,9 +53,8 @@ export async function PATCH(
       .single();
 
     let result;
-    
+
     if (existing) {
-      // Update existing
       result = await supabase
         .from('brand_contexts')
         .update({
@@ -72,7 +65,6 @@ export async function PATCH(
         .select()
         .single();
     } else {
-      // Create new
       result = await supabase
         .from('brand_contexts')
         .insert({
@@ -88,7 +80,6 @@ export async function PATCH(
     }
 
     return NextResponse.json({ brandContext: result.data });
-
   } catch (error: any) {
     console.error('Update brand context error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });

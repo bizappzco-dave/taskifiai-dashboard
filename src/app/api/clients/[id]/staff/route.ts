@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 /**
  * GET /api/clients/[id]/staff
@@ -13,7 +10,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
     const { data: staff, error: staffError } = await supabase
       .from('client_staff_access')
@@ -33,7 +30,6 @@ export async function GET(
       throw staffError;
     }
 
-    // Get user details for staff with user_id (from auth.users schema)
     const userIds = staff.filter((s) => s.user_id).map((s) => s.user_id);
     let userMap = new Map();
 
@@ -45,7 +41,6 @@ export async function GET(
 
       if (usersError) {
         console.error('Failed to fetch auth users:', usersError);
-        // Continue without user details - will use invited_email
       } else if (users) {
         users.forEach((u) => {
           userMap.set(u.id, u);
@@ -53,7 +48,6 @@ export async function GET(
       }
     }
 
-    // Format staff list
     const formattedStaff = staff.map((s: any) => {
       const user = userMap.get(s.user_id);
       return {
@@ -93,9 +87,8 @@ export async function POST(
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
-    // First, check if user exists in auth.users by email
     const { data: authUser, error: authError } = await supabase
       .from('auth.users')
       .select('id, email, raw_user_meta_data')
@@ -104,17 +97,12 @@ export async function POST(
 
     let userId: string | null = null;
     let userEmail: string | null = null;
-    let userName: string | null = null;
 
     if (authUser) {
       userId = authUser.id;
       userEmail = authUser.email;
-      userName =
-        (authUser.raw_user_meta_data as any)?.fullName ||
-        (authUser.raw_user_meta_data as any)?.name;
     }
 
-    // If user exists in auth, add them directly
     if (userId) {
       const { data: access, error: accessError } = await supabase
         .from('client_staff_access')
@@ -129,7 +117,6 @@ export async function POST(
 
       if (accessError) {
         if (accessError.code === '23505') {
-          // Unique violation
           return NextResponse.json(
             { error: 'User is already a staff member' },
             { status: 409 }
@@ -154,7 +141,6 @@ export async function POST(
       });
     }
 
-    // User doesn't exist - create pending invitation
     const { data: invitation, error: inviteError } = await supabase
       .from('client_staff_access')
       .insert({
