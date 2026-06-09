@@ -1,72 +1,43 @@
 import { NextResponse } from 'next/server'
-import { logWebhook, markWebhookProcessed, logActivity } from '@/lib/queries'
+import { logWebhook, markWebhookFailed, markWebhookProcessed, logActivity } from '@/lib/queries'
+import { mapDMChampEventToActivity } from '@/lib/activities/webhook-events'
 
 export async function POST(request: Request) {
+  let webhookId: string | undefined
+
   try {
     const body = await request.json()
-    
-    // Log the webhook
-    const webhook = await logWebhook({
+
+    const webhook: any = await logWebhook({
       source_product: 'dm-champ',
-      event_type: body.event || 'unknown',
-      payload: body
+      event_type: body.event || body.type || 'unknown',
+      payload: body,
     })
-    
-    // Process different event types
-    switch (body.event) {
-      case 'contact.created':
-        // New contact created in DM Champ
-        await logActivity({
-          client_id: body.client_id,
-          product: 'dm-champ',
-          activity_type: 'contact_created',
-          title: 'Contact created',
-          description: body.contact_name || body.phone,
-          details: {
-            contact_id: body.contact_id,
-            phone: body.phone
-          }
-        })
-        break
-        
-      case 'message.broadcast':
-        // Broadcast message sent
-        await logActivity({
-          client_id: body.client_id,
-          product: 'dm-champ',
-          activity_type: 'message_broadcast',
-          title: 'Broadcast sent',
-          description: `${body.sent_count} messages sent`,
-          details: {
-            campaign_id: body.campaign_id,
-            sent_count: body.sent_count,
-            delivered_count: body.delivered_count
-          }
-        })
-        break
-        
-      case 'flow.completed':
-        // Onboarding flow completed
-        await logActivity({
-          client_id: body.client_id,
-          product: 'dm-champ',
-          activity_type: 'onboarding_completed',
-          title: 'Onboarding flow completed',
-          description: `Contact: ${body.contact_id}`,
-          details: {
-            contact_id: body.contact_id,
-            flow_id: body.flow_id,
-            answers: body.answers
-          }
-        })
-        break
+
+    if (!webhook?.id) {
+      throw new Error('Webhook log insert did not return an id')
     }
-    
-    // Mark webhook as processed
-    await markWebhookProcessed(webhook.id)
-    
-    return NextResponse.json({ success: true })
+
+    const persistedWebhookId = webhook.id
+    webhookId = persistedWebhookId
+
+    const activity = mapDMChampEventToActivity(body)
+    if (activity) {
+      await logActivity(activity)
+    }
+
+    await markWebhookProcessed(persistedWebhookId)
+
+    return NextResponse.json({ success: true, activity_logged: Boolean(activity) })
   } catch (error: any) {
+    if (webhookId) {
+      try {
+        await markWebhookFailed(webhookId, error.message)
+      } catch (markFailedError) {
+        console.error('Failed to mark DM Champ webhook as failed:', markFailedError)
+      }
+    }
+
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

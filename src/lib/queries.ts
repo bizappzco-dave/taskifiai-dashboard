@@ -150,7 +150,12 @@ export async function logActivity(data: {
   activity_type: string
   title?: string
   description?: string
-  details?: any
+  activity_category?: 'communication' | 'marketing' | 'support' | 'sales' | 'operations' | 'reputation'
+  source?: string
+  external_id?: string
+  contact_id?: string
+  occurred_at?: string
+  details?: Record<string, unknown>
 }) {
   const supabaseAdmin = getSupabaseAdmin()
   const { error } = await supabaseAdmin
@@ -161,6 +166,11 @@ export async function logActivity(data: {
       activity_type: data.activity_type,
       title: data.title,
       description: data.description,
+      activity_category: data.activity_category,
+      source: data.source,
+      external_id: data.external_id,
+      contact_id: data.contact_id,
+      occurred_at: data.occurred_at || new Date().toISOString(),
       details: data.details || {},
       created_at: new Date().toISOString()
     }])

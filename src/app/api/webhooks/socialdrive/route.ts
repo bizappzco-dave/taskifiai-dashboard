@@ -1,67 +1,43 @@
 import { NextResponse } from 'next/server'
-import { logWebhook, markWebhookProcessed, logActivity } from '@/lib/queries'
+import { logWebhook, markWebhookFailed, markWebhookProcessed, logActivity } from '@/lib/queries'
+import { mapSocialDriveEventToActivity } from '@/lib/activities/webhook-events'
 
 export async function POST(request: Request) {
+  let webhookId: string | undefined
+
   try {
     const body = await request.json()
-    
-    // Log the webhook
-    const webhook = await logWebhook({
+
+    const webhook: any = await logWebhook({
       source_product: 'socialdrive-ai',
-      event_type: body.event || 'unknown',
-      payload: body
+      event_type: body.event || body.type || 'unknown',
+      payload: body,
     })
-    
-    // Process different event types
-    switch (body.event) {
-      case 'client.created':
-        // Client created in SocialDrive (if created directly there)
-        await logActivity({
-          client_id: body.client_id,
-          product: 'socialdrive-ai',
-          activity_type: 'client_created',
-          title: 'Client created in SocialDrive AI',
-          description: body.client_name
-        })
-        break
-        
-      case 'content.uploaded':
-        // Client uploaded content
-        await logActivity({
-          client_id: body.client_id,
-          product: 'socialdrive-ai',
-          activity_type: 'content_uploaded',
-          title: 'Content uploaded',
-          description: `${body.image_count} images uploaded`,
-          details: {
-            submission_id: body.submission_id,
-            image_count: body.image_count
-          }
-        })
-        break
-        
-      case 'content.generated':
-        // AI generated captions
-        await logActivity({
-          client_id: body.client_id,
-          product: 'socialdrive-ai',
-          activity_type: 'content_generated',
-          title: 'AI content generated',
-          description: `${body.post_count} posts generated`,
-          details: {
-            submission_id: body.submission_id,
-            post_count: body.post_count,
-            platforms: body.platforms
-          }
-        })
-        break
+
+    if (!webhook?.id) {
+      throw new Error('Webhook log insert did not return an id')
     }
-    
-    // Mark webhook as processed
-    await markWebhookProcessed(webhook.id)
-    
-    return NextResponse.json({ success: true })
+
+    const persistedWebhookId = webhook.id
+    webhookId = persistedWebhookId
+
+    const activity = mapSocialDriveEventToActivity(body)
+    if (activity) {
+      await logActivity(activity)
+    }
+
+    await markWebhookProcessed(persistedWebhookId)
+
+    return NextResponse.json({ success: true, activity_logged: Boolean(activity) })
   } catch (error: any) {
+    if (webhookId) {
+      try {
+        await markWebhookFailed(webhookId, error.message)
+      } catch (markFailedError) {
+        console.error('Failed to mark SocialDrive webhook as failed:', markFailedError)
+      }
+    }
+
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

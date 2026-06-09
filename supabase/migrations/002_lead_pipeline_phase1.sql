@@ -137,7 +137,7 @@ SELECT
 FROM auth.users
 CROSS JOIN (
   VALUES 
-    ('whatsapp_message_received', 'whatsapp'::lead_source),
+    ('whatsapp_received', 'whatsapp'::lead_source),
     ('email_received', 'gmail'::lead_source),
     ('instagram_dm_received', 'instagram_dm'::lead_source),
     ('facebook_dm_received', 'facebook_dm'::lead_source),
@@ -171,22 +171,24 @@ BEGIN
   -- Get source from rule
   v_source := v_rule.source;
 
-  -- Extract contact_id from activity metadata
-  v_contact_id := (NEW.metadata->>'contact_id')::uuid;
+  -- Extract contact_id from activity payload
+  v_contact_id := COALESCE(NEW.contact_id, (NEW.details->>'contact_id')::uuid);
 
-  -- If no contact_id in metadata, try to find by email/phone
+  -- If no contact_id in details, try to find by email/phone
   IF v_contact_id IS NULL THEN
     -- Try to find contact by email
     SELECT id INTO v_contact_id
     FROM contacts
-    WHERE email = (NEW.metadata->>'email')
+    WHERE client_id = NEW.client_id
+      AND email = (NEW.details->>'email')
     LIMIT 1;
 
     -- If still not found, try phone
     IF v_contact_id IS NULL THEN
       SELECT id INTO v_contact_id
       FROM contacts
-      WHERE phone = (NEW.metadata->>'phone')
+      WHERE client_id = NEW.client_id
+        AND phone = (NEW.details->>'phone')
       LIMIT 1;
     END IF;
   END IF;
@@ -196,11 +198,13 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Get client_id from contact
+  -- Get client_id from contact (fallback to the activity client_id)
   SELECT client_id INTO v_client_id
   FROM contacts
   WHERE id = v_contact_id
   LIMIT 1;
+
+  v_client_id := COALESCE(v_client_id, NEW.client_id);
 
   -- No client = can't create lead
   IF v_client_id IS NULL THEN
@@ -246,7 +250,16 @@ BEGIN
     NEW.id,
     CASE 
       WHEN v_rule.auto_assign_to_owner THEN 
-        (SELECT user_id FROM clients WHERE id = v_client_id)
+        (
+          SELECT c.user_id
+          FROM clients c
+          WHERE c.id = v_client_id
+            AND EXISTS (
+              SELECT 1
+              FROM auth.users u
+              WHERE u.id = c.user_id
+            )
+        )
       ELSE NULL
     END,
     'new_lead'

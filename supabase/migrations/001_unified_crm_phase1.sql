@@ -10,7 +10,7 @@
 ALTER TABLE public.activities 
   ADD COLUMN IF NOT EXISTS contact_id UUID REFERENCES public.contacts(id),
   ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id),
-  ADD COLUMN IF NOT EXISTS activity_category TEXT CHECK (activity_category IN ('communication', 'marketing', 'support', 'sales', 'operations')),
+  ADD COLUMN IF NOT EXISTS activity_category TEXT CHECK (activity_category IN ('communication', 'marketing', 'support', 'sales', 'operations', 'reputation')),
   ADD COLUMN IF NOT EXISTS source TEXT,
   ADD COLUMN IF NOT EXISTS external_id TEXT,
   ADD COLUMN IF NOT EXISTS occurred_at TIMESTAMP;
