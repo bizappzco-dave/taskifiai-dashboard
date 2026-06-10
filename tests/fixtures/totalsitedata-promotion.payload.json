@@ -1,0 +1,28 @@
+{
+  "source": "totalsitedata",
+  "source_detail": "free_report_request_form",
+  "prospect_id": "22222222-2222-4222-8222-222222222222",
+  "business_name": "TEST TotalSiteData Warm Prospect",
+  "domain": "example.com",
+  "email": "warm-prospect@example.com",
+  "phone": "+353100000001",
+  "category": "electrician",
+  "location": "Dublin",
+  "lead_score": 82,
+  "pain_score": 74,
+  "fit_score": 88,
+  "warmth_status": "warm",
+  "promotion_reason": "Requested a free report after repeated scan alerts.",
+  "promotion_trigger": "free_report_request",
+  "report_links": {
+    "free_preview_html": "https://totalsitedata.example/reports/free-preview.html",
+    "full_report_pdf": "https://totalsitedata.example/reports/full-report.pdf"
+  },
+  "scan_summary": {
+    "top_issues": [
+      "No recent Google Business Profile posts",
+      "Homepage missing clear call to action",
+      "Mobile performance under threshold"
+    ]
+  }
+}

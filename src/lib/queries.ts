@@ -158,7 +158,7 @@ export async function logActivity(data: {
   details?: Record<string, unknown>
 }) {
   const supabaseAdmin = getSupabaseAdmin()
-  const { error } = await supabaseAdmin
+  const { data: activity, error } = await (supabaseAdmin as any)
     .from('activities')
     .insert([{
       client_id: data.client_id,
@@ -166,16 +166,181 @@ export async function logActivity(data: {
       activity_type: data.activity_type,
       title: data.title,
       description: data.description,
-      activity_category: data.activity_category,
-      source: data.source,
-      external_id: data.external_id,
-      contact_id: data.contact_id,
-      occurred_at: data.occurred_at || new Date().toISOString(),
-      details: data.details || {},
+      details: {
+        ...(data.details || {}),
+        ...(data.source ? { source: data.source } : {}),
+        ...(data.external_id ? { external_id: data.external_id } : {}),
+        ...(data.contact_id ? { contact_id: data.contact_id } : {}),
+        ...(data.activity_category ? { activity_category: data.activity_category } : {}),
+        ...(data.occurred_at ? { occurred_at: data.occurred_at } : {}),
+      },
       created_at: new Date().toISOString()
-    }])
+    }] as any)
+    .select()
+    .single()
   
   if (error) throw error
+  return activity
+}
+
+export async function findActivityByExternalId(clientId: string, externalId: string) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data, error } = await supabaseAdmin
+    .from('activities')
+    .select('*')
+    .eq('client_id', clientId)
+    .filter('details->>external_id', 'eq', externalId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function getClientOwnerInfo(clientId: string) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data, error } = await supabaseAdmin
+    .from('clients')
+    .select('id, user_id')
+    .eq('id', clientId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function findContactForPromotion(data: {
+  client_id: string
+  email?: string | null
+  phone?: string | null
+  business_name?: string | null
+}) {
+  const supabaseAdmin = getSupabaseAdmin()
+
+  if (data.email) {
+    const { data: byEmail, error } = await supabaseAdmin
+      .from('contacts')
+      .select('*')
+      .eq('client_id', data.client_id)
+      .eq('email', data.email)
+      .maybeSingle()
+
+    if (error) throw error
+    if (byEmail) return byEmail
+  }
+
+  if (data.phone) {
+    const { data: byPhone, error } = await supabaseAdmin
+      .from('contacts')
+      .select('*')
+      .eq('client_id', data.client_id)
+      .eq('phone', data.phone)
+      .maybeSingle()
+
+    if (error) throw error
+    if (byPhone) return byPhone
+  }
+
+  if (data.business_name) {
+    const { data: byCompany, error } = await supabaseAdmin
+      .from('contacts')
+      .select('*')
+      .eq('client_id', data.client_id)
+      .eq('company_name', data.business_name)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    if (byCompany) return byCompany
+  }
+
+  return null
+}
+
+export async function createContactForPromotion(data: {
+  client_id: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  business_name?: string | null
+  notes?: string | null
+  metadata?: Record<string, unknown>
+}) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: contact, error } = await (supabaseAdmin as any)
+    .from('contacts')
+    .insert([{
+      client_id: data.client_id,
+      name: data.name,
+      email: data.email || null,
+      phone: data.phone || null,
+      role: 'lead',
+      company_name: data.business_name || null,
+      notes: data.notes || null,
+      metadata: data.metadata || {}
+    }] as any)
+    .select()
+    .single()
+
+  if (error) throw error
+  return contact
+}
+
+export async function findOpenLeadForContact(contactId: string, clientId: string) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data, error } = await supabaseAdmin
+    .from('leads')
+    .select('*')
+    .eq('contact_id', contactId)
+    .eq('client_id', clientId)
+    .in('status', ['new_lead', 'contacted', 'qualified', 'quoted', 'follow_up'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function findLeadByActivityId(activityId: string) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data, error } = await supabaseAdmin
+    .from('leads')
+    .select('*')
+    .eq('activity_id', activityId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function createLeadRecord(data: {
+  contact_id: string
+  client_id: string
+  source: 'gmail' | 'whatsapp' | 'instagram_dm' | 'facebook_dm' | 'website_form' | 'gbp_call' | 'manual' | 'totalsitedata'
+  activity_id?: string | null
+  assigned_user_id?: string | null
+  status?: 'new_lead' | 'contacted' | 'qualified' | 'quoted' | 'follow_up' | 'won' | 'lost'
+  value?: number
+  notes?: string
+}) {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: lead, error } = await (supabaseAdmin as any)
+    .from('leads')
+    .insert([{
+      contact_id: data.contact_id,
+      client_id: data.client_id,
+      source: data.source,
+      activity_id: data.activity_id || null,
+      assigned_user_id: data.assigned_user_id || null,
+      status: data.status || 'new_lead',
+      value: data.value || 0,
+      notes: data.notes || ''
+    }] as any)
+    .select()
+    .single()
+
+  if (error) throw error
+  return lead
 }
 
 export async function getClientActivities(clientId: string, limit = 50) {
