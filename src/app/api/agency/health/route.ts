@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     // Get all active clients
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('id, business_name, name, email, website, instagram_handle')
+      .select('id, name, email, website, instagram_handle')
       .eq('is_active', true)
-      .order('business_name');
+      .order('name');
 
     if (clientsError) {
       console.error('Error fetching clients:', clientsError);
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
         return {
           clientId: client.id,
-          businessName: client.business_name || client.name || 'Unnamed Client',
+          businessName: client.name || 'Unnamed Client',
           status,
           score: metrics.overall,
           metrics,
