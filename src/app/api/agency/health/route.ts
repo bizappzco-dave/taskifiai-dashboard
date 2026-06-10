@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Get all active clients
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('id, name, email, website, instagram_handle')
+      .select('id, name, is_active, features')
       .eq('is_active', true)
       .order('name');
 
@@ -238,10 +238,9 @@ function generateAlerts(metrics: HealthMetrics, client: any): string[] {
   if (metrics.leadCapture < 30) {
     alerts.push('No recent leads - check lead sources');
   }
-  if (!client.website) {
-    alerts.push('Missing website URL');
-  }
-  if (!client.instagram_handle) {
+  if (client.features?.social_accounts?.instagram) {
+    alerts.push('Instagram connected');
+  } else {
     alerts.push('No Instagram connected');
   }
 
