@@ -241,9 +241,21 @@ CREATE POLICY "Users can manage own rules"
 
 ---
 
-### **Priority 5: Lead Detail Improvements** (MEDIUM)
+### **Priority 5: Lead Detail Improvements** (COMPLETED)
 
-**Status:** Basic read-only modal exists
+**Completed:**
+- [x] Edit notes with inline textarea and save button
+- [x] Edit quote value with inline number input
+- [x] Edit won/lost reason with dropdown + custom input
+- [x] Create follow-up tasks from lead (type, priority, due date)
+- [x] Change lead stage directly in modal
+- [x] Shows recent activity for the contact
+- [x] Logs activities for status changes and task creation
+- [x] Related activities section with icons and timestamps
+
+**Files created/modified:**
+- `/src/components/LeadDetailModal.tsx` (new)
+- `/src/app/pipeline/page.tsx` (replaced read-only modal)
 
 **What Needs Done:**
 
