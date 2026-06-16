@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { getSupabase } from '@/lib/supabase';
 import { Phone, MessageCircle, Mail, Plus, Calendar, DollarSign, X } from 'lucide-react';
 import { format, isPast } from 'date-fns';
+import AddLeadModal from '@/components/AddLeadModal';
 
 const PIPELINE_STAGES = [
   { id: 'new_lead', label: 'New Lead', color: 'bg-blue-500' },
@@ -65,6 +66,7 @@ export default function LeadPipeline() {
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [showAddLead, setShowAddLead] = useState(false);
 
   const supabase = getSupabase();
 
@@ -159,7 +161,10 @@ export default function LeadPipeline() {
               </option>
             ))}
           </select>
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+          <button
+            onClick={() => setShowAddLead(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Add Lead
           </button>
@@ -312,6 +317,13 @@ export default function LeadPipeline() {
           </div>
         </div>
       )}
+
+      {/* Add Lead Modal */}
+      <AddLeadModal
+        isOpen={showAddLead}
+        onClose={() => setShowAddLead(false)}
+        onSuccess={fetchLeads}
+      />
     </div>
   );
 }
