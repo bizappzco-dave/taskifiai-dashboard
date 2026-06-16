@@ -455,3 +455,68 @@ export async function markWebhookFailed(webhookId: string, errorMessage: string)
   
   if (error) throw error
 }
+
+// ==================== ACTIVITIES ====================
+
+interface GetActivitiesOptions {
+  limit?: number
+  category?: string | null
+}
+
+interface ActivityResult {
+  activities: any[]
+  total: number
+  hasMore: boolean
+  error?: string
+}
+
+export async function getActivitiesByClient(
+  clientId: string,
+  options: GetActivitiesOptions = {}
+): Promise<ActivityResult> {
+  const { limit = 50, category = null } = options
+  const supabaseAdmin = getSupabaseAdmin()
+
+  let query = supabaseAdmin
+    .from('activities')
+    .select(
+      `
+      id,
+      activity_type,
+      activity_category,
+      title,
+      description,
+      source,
+      details,
+      occurred_at,
+      created_at,
+      contacts (
+        id,
+        name,
+        email,
+        phone
+      )
+    `,
+      { count: 'exact' }
+    )
+    .eq('client_id', clientId)
+    .order('occurred_at', { ascending: false })
+    .limit(limit)
+
+  if (category) {
+    query = query.eq('activity_category', category)
+  }
+
+  const { data: activities, error, count } = await query
+
+  if (error) {
+    console.error('Supabase error fetching activities:', error)
+    return { activities: [], total: 0, hasMore: false, error: error.message }
+  }
+
+  return {
+    activities: activities || [],
+    total: count || 0,
+    hasMore: (count || 0) > limit
+  }
+}

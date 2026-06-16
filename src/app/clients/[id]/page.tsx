@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ActivityFeed from '@/components/ActivityFeed';
 
 interface Client {
   id: string;
@@ -642,6 +643,11 @@ export default function ClientDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Activity Feed */}
+        <div className="mt-8">
+          <ActivityFeed clientId={client.id} />
         </div>
       </main>
     </div>
