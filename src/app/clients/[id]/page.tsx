@@ -587,6 +587,12 @@ export default function ClientDetailPage() {
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Links</h3>
                     <div className="space-y-2">
+                      <Link
+                        href="/dashboard/ads"
+                        className="block text-sm text-indigo-600 hover:text-indigo-900"
+                      >
+                        → Ad Reports
+                      </Link>
                       {client.socialdrive_dashboard_url && (
                         <a
                           href={client.socialdrive_dashboard_url}
