@@ -149,9 +149,23 @@ CREATE POLICY "Users can manage own rules"
 
 ---
 
-### **Priority 3: Activity Feed UI** (HIGH)
+### **Priority 3: Activity Feed UI** (COMPLETED)
 
-**Status:** Database ready, no UI
+**Completed:**
+- [x] ActivityFeed component (`/src/components/ActivityFeed.tsx`)
+- [x] API endpoint `GET /api/clients/[id]/activities` with pagination and category filter
+- [x] `getActivitiesByClient()` query function in `queries.ts`
+- [x] Timeline view with date grouping (Today, Yesterday, This Week, Older)
+- [x] Icons for all 30 activity types across 6 categories
+- [x] Category filter dropdown (All, Communication, Marketing, Reputation, Sales, Operations)
+- [x] Contact info display, descriptions, and metadata badges
+- [x] Integrated into client detail page as full-width section below main content
+
+**Files created/modified:**
+- `/src/components/ActivityFeed.tsx` (new)
+- `/src/app/api/clients/[id]/activities/route.ts` (new)
+- `/src/lib/queries.ts` (added getActivitiesByClient)
+- `/src/app/clients/[id]/page.tsx` (added ActivityFeed import and section)
 
 **What Needs Done:**
 
