@@ -199,9 +199,22 @@ CREATE POLICY "Users can manage own rules"
 
 ---
 
-### **Priority 4: Add Lead Modal** (MEDIUM)
+### **Priority 4: Add Lead Modal** (COMPLETED)
 
-**Status:** "Add Lead" button exists, does nothing
+**Completed:**
+- [x] AddLeadModal component (`/src/components/AddLeadModal.tsx`)
+- [x] Search existing contacts by name
+- [x] Create new contact inline (name, email, phone)
+- [x] Client dropdown (user's clients only)
+- [x] Source selection (7 sources), value (£), stage, follow-up date
+- [x] Won/lost reason dropdown + custom input (required for won/lost)
+- [x] Auto-logs 'lead_created' activity on creation
+- [x] Refreshes pipeline after successful creation
+- [x] Wired to existing 'Add Lead' button in /pipeline
+
+**Files created/modified:**
+- `/src/components/AddLeadModal.tsx` (new)
+- `/src/app/pipeline/page.tsx` (wired modal to button)
 
 **What Needs Done:**
 
