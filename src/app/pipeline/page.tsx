@@ -5,6 +5,7 @@ import { getSupabase } from '@/lib/supabase';
 import { Phone, MessageCircle, Mail, Plus, Calendar, DollarSign, X } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import AddLeadModal from '@/components/AddLeadModal';
+import LeadDetailModal from '@/components/LeadDetailModal';
 
 const PIPELINE_STAGES = [
   { id: 'new_lead', label: 'New Lead', color: 'bg-blue-500' },
@@ -264,58 +265,17 @@ export default function LeadPipeline() {
 
       {/* Lead Detail Modal */}
       {selectedLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-bold">
-                {selectedLead.contact?.name || 'Unknown'} - {selectedLead.client?.name}
-              </h2>
-              <button
-                onClick={() => setSelectedLead(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Contact Info</h4>
-                  <p className="text-sm text-gray-600">{selectedLead.contact?.email}</p>
-                  <p className="text-sm text-gray-600">{selectedLead.contact?.phone}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Lead Details</h4>
-                  <p className="text-sm text-gray-600">
-                    Source: {SOURCE_LABELS[selectedLead.source]}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Value: £{selectedLead.value.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Status: {PIPELINE_STAGES.find(s => s.id === selectedLead.status)?.label}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium mb-2">Notes</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {selectedLead.notes || 'No notes yet'}
-                </p>
-              </div>
-
-              {selectedLead.won_lost_reason && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">
-                    {selectedLead.status === 'won' ? 'Won Reason' : 'Lost Reason'}
-                  </h4>
-                  <p className="text-sm text-gray-600">{selectedLead.won_lost_reason}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <LeadDetailModal
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onUpdate={(updates) => {
+            setLeads(prev =>
+              prev.map(l => l.id === selectedLead.id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l)
+            );
+            setSelectedLead(prev => prev ? { ...prev, ...updates, updated_at: new Date().toISOString() } : null);
+          }}
+          onRefresh={fetchLeads}
+        />
       )}
 
       {/* Add Lead Modal */}
