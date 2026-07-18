@@ -341,6 +341,7 @@ export async function enableUltraMarketing(clientId: string, options: { tier?: s
   const existingFeature = objectOrEmpty(client?.features?.products?.ultra_marketing || client?.features?.ultra_marketing)
   const tier = options.tier || existingFeature.tier || client?.subscription_tier || client?.tier || 'growth'
   const features = withProductFeature(client, 'ultra_marketing', {
+    enabled: true,
     status: 'active',
     tier,
     enabled_at: existingFeature.enabled_at || now,
@@ -376,6 +377,7 @@ export async function disableUltraMarketing(clientId: string, options: { disable
   const existingFeature = objectOrEmpty(client?.features?.products?.ultra_marketing || client?.features?.ultra_marketing)
   const features = withProductFeature(client, 'ultra_marketing', {
     ...existingFeature,
+    enabled: false,
     status: 'paused',
     paused_at: now,
     disabled_by: options.disabled_by || existingFeature.disabled_by || null,
