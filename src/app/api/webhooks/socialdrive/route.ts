@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
 import { logWebhook, markWebhookFailed, markWebhookProcessed, logActivity } from '@/lib/queries'
 import { mapSocialDriveEventToActivity } from '@/lib/activities/webhook-events'
+import { requireWebhookSecret } from '@/lib/webhook-auth'
+
+const SOCIALDRIVE_WEBHOOK_SECRET =
+  process.env.SOCIALDRIVE_WEBHOOK_SECRET || process.env.WEBHOOK_INTERNAL_SECRET || process.env.INTERNAL_API_SECRET
 
 export async function POST(request: Request) {
   let webhookId: string | undefined
 
   try {
+    const authResponse = requireWebhookSecret(request, SOCIALDRIVE_WEBHOOK_SECRET, 'SOCIALDRIVE_WEBHOOK_SECRET')
+    if (authResponse) return authResponse
+
     const body = await request.json()
 
     const webhook: any = await logWebhook({

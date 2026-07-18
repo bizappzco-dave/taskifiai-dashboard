@@ -1,5 +1,8 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { listAccessibleClientsForUser, requireAuthenticatedUserFromRequest } from '@/lib/client-access';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Agency Health Dashboard API
@@ -31,24 +34,14 @@ interface ClientHealth {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin() as any;
 
-    // Get all active clients
-    const { data: clients, error: clientsError } = await supabase
-      .from('clients')
-      .select('id, name, is_active, features')
-      .eq('is_active', true)
-      .order('name');
+    const authResult = await requireAuthenticatedUserFromRequest(request);
+    if (authResult.response) return authResult.response;
 
-    if (clientsError) {
-      console.error('Error fetching clients:', clientsError);
-      console.error('Error code:', clientsError.code);
-      console.error('Error details:', clientsError.details);
-      return NextResponse.json(
-        { error: 'Failed to fetch clients', details: clientsError.message },
-        { status: 500 }
-      );
-    }
+    const clients = (await listAccessibleClientsForUser(authResult.user.id))
+      .filter((client: any) => client.is_active !== false)
+      .sort((a: any, b: any) => String(a.name || '').localeCompare(String(b.name || '')));
 
     // Calculate health for each client
     const healthData: ClientHealth[] = await Promise.all(
@@ -77,7 +70,9 @@ export async function GET(request: NextRequest) {
       amber: healthData.filter(c => c.status === 'amber').length,
       red: healthData.filter(c => c.status === 'red').length,
       averageScore: Math.round(
-        healthData.reduce((sum, c) => sum + c.score, 0) / healthData.length
+        healthData.length > 0
+          ? healthData.reduce((sum, c) => sum + c.score, 0) / healthData.length
+          : 0
       )
     };
 

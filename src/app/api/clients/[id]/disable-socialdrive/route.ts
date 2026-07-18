@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireClientRouteAccess } from '@/lib/client-access'
 import { updateClient } from '@/lib/queries'
 
 export async function POST(
@@ -7,14 +8,14 @@ export async function POST(
 ) {
   try {
     const clientId = params.id
+
+    const accessResult = await requireClientRouteAccess(request, clientId, { minimumRole: 'manager' })
+    if (accessResult.response) return accessResult.response
     
     // Update client to disable SocialDrive
     const updatedClient = await updateClient(clientId, {
-      socialdrive_enabled: false,
-      socialdrive_account_id: null,
-      socialdrive_upload_url: null,
-      socialdrive_dashboard_url: null,
-      socialdrive_status: null,
+      upload_token: null,
+      review_token: null,
     })
     
     return NextResponse.json({

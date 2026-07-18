@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { fetchWithDashboardAuth } from '@/lib/authenticated-fetch'
 
 interface Activity {
   id: string
@@ -144,7 +145,7 @@ export default function ActivityFeed({ clientId }: ActivityFeedProps) {
         ...(category ? { category } : {}),
       })
 
-      const res = await fetch(`/api/clients/${clientId}/activities?${params}`)
+      const res = await fetchWithDashboardAuth(`/api/clients/${clientId}/activities?${params}`)
       const data = await res.json()
 
       if (!res.ok) {

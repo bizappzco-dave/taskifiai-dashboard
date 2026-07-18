@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireClientRouteAccess } from '@/lib/client-access'
 import { getActivitiesByClient } from '@/lib/queries'
 
 export async function GET(
@@ -7,6 +8,9 @@ export async function GET(
 ) {
   try {
     const { id: clientId } = await params
+
+    const accessResult = await requireClientRouteAccess(request, clientId)
+    if (accessResult.response) return accessResult.response
 
     // Get limit and category filter from query params
     const url = new URL(request.url)

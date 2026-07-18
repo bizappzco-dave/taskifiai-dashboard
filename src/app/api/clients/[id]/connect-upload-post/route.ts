@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireClientRouteAccess } from '@/lib/client-access';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
-const uploadPostApiKey = process.env.UPLOAD_POST_API_KEY!;
+const uploadPostApiKey = process.env.UPLOAD_POST_API_KEY;
 const uploadPostBaseUrl = process.env.UPLOAD_POST_BASE_URL || 'https://api.upload-post.com/api/uploadposts';
 
 /**
@@ -13,8 +14,16 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const clientId = params.id;
+
+    const accessResult = await requireClientRouteAccess(request, clientId, { minimumRole: 'manager' });
+    if (accessResult.response) return accessResult.response;
+
+    if (!uploadPostApiKey) {
+      return NextResponse.json({ error: 'UPLOAD_POST_API_KEY not configured' }, { status: 503 });
+    }
+
+    const supabase = getSupabaseAdmin() as any;
 
     const { data: client, error: clientError } = await supabase
       .from('clients')
@@ -125,8 +134,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const clientId = params.id;
+
+    const accessResult = await requireClientRouteAccess(request, clientId);
+    if (accessResult.response) return accessResult.response;
+
+    const supabase = getSupabaseAdmin() as any;
 
     const { data: client, error } = await supabase
       .from('clients')

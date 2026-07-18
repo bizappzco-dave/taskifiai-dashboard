@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getClient, enableSocialDrive } from '@/lib/queries'
+import { requireClientRouteAccess } from '@/lib/client-access'
+import { getClient, enableSocialDrive, createSubscription, getProductBySlug } from '@/lib/queries'
+
+function generateToken(): string {
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
 
 export async function POST(
   request: Request,
@@ -7,6 +14,9 @@ export async function POST(
 ) {
   try {
     const clientId = params.id
+
+    const accessResult = await requireClientRouteAccess(request, clientId, { minimumRole: 'manager' })
+    if (accessResult.response) return accessResult.response
     
     // Get client details
     const client = await getClient(clientId)
@@ -17,42 +27,45 @@ export async function POST(
       )
     }
     
-    // Call SocialDrive AI API to create sub-account
-    const socialdriveApiUrl = process.env.SOCIALDRIVE_API_URL || 'https://socialdrive-ai.vercel.app/api'
-    
-    const response = await fetch(`${socialdriveApiUrl}/agency/clients`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: client.business_name,  // SocialDrive expects 'name', not 'business_name'
-        industry: client.industry || 'General',
-        tier: client.subscription_tier
-      })
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to create SocialDrive account')
-    }
-    
-    const accountData = await response.json()
+    // SocialDrive reads the same TaskifiAI Supabase clients table, so enabling
+    // this product only needs permanent tokens on the existing client record.
+    // Do not call the SocialDrive agency-client creation endpoint here: it
+    // creates duplicate client rows before this dashboard update runs.
+    let uploadToken = client.upload_token || null
+    let reviewToken = client.review_token || null
+
+    uploadToken = uploadToken || generateToken()
+    reviewToken = reviewToken || generateToken()
     
     // Update client in TaskifiAI
     const updatedClient = await enableSocialDrive(clientId, {
-      account_id: accountData.client.id,  // SocialDrive returns 'client.id' not 'client_id'
-      upload_url: accountData.client.upload_url,
-      dashboard_url: accountData.client.review_url  // Use review_url as dashboard for now
+      upload_token: uploadToken,
+      review_token: reviewToken,
+      upload_url: `https://socialdrive-ai.vercel.app/upload/${uploadToken}`,
+      dashboard_url: `https://socialdrive-ai.vercel.app/review?token=${reviewToken}`,
     })
-    
-    // TODO: Create subscription record when billing is implemented
-    // await createSubscription({...})
+
+    const product: { id?: string } | null = (await getProductBySlug('socialdrive')) as { id?: string } | null
+    if (product && product.id) {
+      await createSubscription({
+        client_id: clientId,
+        product_id: product.id,
+        plan: client.subscription_tier || 'starter',
+        billing_model: client.billing_cycle || 'monthly',
+        monthly_price: client.monthly_revenue || 0,
+        plan_description: client.subscription_description || null,
+        external_account_id: null,
+        external_login_url: `https://socialdrive-ai.vercel.app/review?token=${reviewToken}`
+      })
+    }
     
     return NextResponse.json({
       success: true,
       client: updatedClient,
-      socialdrive: accountData
+      socialdrive: {
+        upload_url: `https://socialdrive-ai.vercel.app/upload/${uploadToken}`,
+        review_url: `https://socialdrive-ai.vercel.app/review?token=${reviewToken}`,
+      },
     })
   } catch (error: any) {
     return NextResponse.json(

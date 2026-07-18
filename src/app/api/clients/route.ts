@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getClients, createClientRecord } from '@/lib/queries'
+import { createClientRecord } from '@/lib/queries'
+import { listAccessibleClientsForUser, requireAuthenticatedUserFromRequest } from '@/lib/client-access'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const clients = await getClients()
+    const authResult = await requireAuthenticatedUserFromRequest(request)
+    if (authResult.response) return authResult.response
+
+    const clients = await listAccessibleClientsForUser(authResult.user.id)
     return NextResponse.json(clients)
   } catch (error: any) {
     return NextResponse.json(
@@ -24,8 +28,11 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const authResult = await requireAuthenticatedUserFromRequest(request)
+    if (authResult.response) return authResult.response
     
-    const client = await createClientRecord(body)
+    const client = await createClientRecord(body, authResult.user.id)
     return NextResponse.json(client)
   } catch (error: any) {
     return NextResponse.json(

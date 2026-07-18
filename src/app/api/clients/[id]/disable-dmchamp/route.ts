@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireClientRouteAccess } from '@/lib/client-access'
 import { updateClient } from '@/lib/queries'
 
 export async function POST(
@@ -7,6 +8,9 @@ export async function POST(
 ) {
   try {
     const clientId = params.id
+
+    const accessResult = await requireClientRouteAccess(request, clientId, { minimumRole: 'manager' })
+    if (accessResult.response) return accessResult.response
     
     // Update client to disable DM Champ
     const updatedClient = await updateClient(clientId, {

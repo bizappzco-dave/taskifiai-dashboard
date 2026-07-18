@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireClientRouteAccess } from '@/lib/client-access';
 import { getSupabaseAdmin } from '@/lib/supabase';
+
+const ALLOWED_STAFF_ROLES = new Set(['viewer', 'staff', 'editor', 'admin', 'manager', 'owner']);
 
 /**
  * GET /api/clients/[id]/staff
@@ -10,7 +13,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
+    const accessResult = await requireClientRouteAccess(request, params.id, { minimumRole: 'manager' });
+    if (accessResult.response) return accessResult.response;
+
+    const supabase = getSupabaseAdmin() as any;
 
     const { data: staff, error: staffError } = await supabase
       .from('client_staff_access')
@@ -87,7 +93,25 @@ export async function POST(
       );
     }
 
-    const supabase = getSupabaseAdmin();
+    const normalizedRole = String(role).trim().toLowerCase();
+    if (!ALLOWED_STAFF_ROLES.has(normalizedRole)) {
+      return NextResponse.json(
+        { error: 'Invalid staff role' },
+        { status: 400 }
+      );
+    }
+
+    const accessResult = await requireClientRouteAccess(request, params.id, { minimumRole: 'manager' });
+    if (accessResult.response) return accessResult.response;
+
+    if (normalizedRole === 'owner' && accessResult.access.role !== 'owner') {
+      return NextResponse.json(
+        { error: 'Only owners can grant owner access' },
+        { status: 403 }
+      );
+    }
+
+    const supabase = getSupabaseAdmin() as any;
 
     const { data: authUser, error: authError } = await supabase
       .from('auth.users')
@@ -109,7 +133,7 @@ export async function POST(
         .insert({
           client_id: params.id,
           user_id: userId,
-          role,
+          role: normalizedRole,
           invitation_accepted: true,
         })
         .select()
@@ -137,7 +161,7 @@ export async function POST(
           email: userEmail,
           role: access.role,
         },
-        message: `${userEmail} added as ${role}`,
+        message: `${userEmail} added as ${normalizedRole}`,
       });
     }
 
@@ -146,7 +170,7 @@ export async function POST(
       .insert({
         client_id: params.id,
         invited_email: email,
-        role,
+        role: normalizedRole,
         invitation_accepted: false,
       })
       .select()
@@ -165,7 +189,7 @@ export async function POST(
       invitation: {
         id: invitation.id,
         email,
-        role,
+        role: normalizedRole,
         status: 'pending',
       },
       message: `Invitation sent to ${email}. They will gain access once they create an account.`,

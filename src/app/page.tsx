@@ -1,44 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getSupabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
-interface Client {
-  id: string;
-  name: string;
-  industry: string;
-  upload_token?: string;
-  review_token?: string;
-  tier?: string;
-  user_id?: string;
-  created_at: string;
-  upload_post_connected?: boolean;
-  socialdrive_enabled?: boolean;
-  dmchamp_enabled?: boolean;
-}
-
-interface StaffAccess {
-  client_id: string;
-  role: string;
-  clients: {
-    id: string;
-    name: string;
-    industry: string;
-    upload_token?: string;
-    review_token?: string;
-    tier?: string;
-    created_at: string;
-    upload_post_connected?: boolean;
-    socialdrive_enabled?: boolean;
-    dmchamp_enabled?: boolean;
-  };
-}
+import DashboardNav from '@/components/DashboardNav';
+import { DashboardClient, clientName, clientTier, hasDmChamp, hasSocialDrive, loadAccessibleClients, requireDashboardUser } from '@/lib/dashboard-data';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<DashboardClient[]>([]);
   const [user, setUser] = useState<{ email: string; id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,58 +19,15 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     try {
-      const supabase = getSupabase();
-      
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
+      const currentUser = await requireDashboardUser();
+
       if (!currentUser) {
-        // Redirect to sign in
         router.push('/auth/signin');
         return;
       }
-      
+
       setUser({ email: currentUser.email || '', id: currentUser.id });
-
-      // Get clients owned by user
-      const { data: ownedClients, error: ownedError } = await supabase
-        .from('clients')
-        .select('id, name, industry, upload_token, review_token, tier, user_id, created_at, upload_post_connected')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-
-      if (ownedError) throw ownedError;
-
-      // Get clients where user is staff
-      const { data: staffAccess, error: staffError } = await supabase
-        .from('client_staff_access')
-        .select('client_id, role, clients:client_id (id, name, industry, upload_token, review_token, tier, created_at, upload_post_connected)')
-        .eq('user_id', currentUser.id);
-
-      if (staffError) throw staffError;
-
-      // Combine both lists
-      const staffClients = (staffAccess?.map(s => {
-        const client = s.clients;
-        return Array.isArray(client) ? client[0] : client;
-      }).filter(Boolean) || []) as Client[];
-      
-      const allClients = [...(ownedClients || []), ...staffClients];
-      
-      // Remove duplicates by client id
-      const uniqueClientsMap = new Map<string, Client>();
-      allClients.forEach((c) => {
-        if (c && c.id) {
-          uniqueClientsMap.set(c.id, c);
-        }
-      });
-      const uniqueClients = Array.from(uniqueClientsMap.values()).map((client) => ({
-        ...client,
-        socialdrive_enabled: !!(client.upload_token || client.review_token || client.upload_post_connected),
-        dmchamp_enabled: false,
-      }));
-
-      setClients(uniqueClients);
+      setClients(await loadAccessibleClients(currentUser.id));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -108,192 +35,142 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleSignOut() {
-    const supabase = getSupabase();
-    await supabase.auth.signOut();
-    router.push('/');
-  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+      <main className="taskifi-dashboard taskifi-loading-screen">
+        <div className="taskifi-loading-card">
+          <div className="taskifi-spinner" />
+          <p className="taskifi-eyebrow">TaskifiAI Dashboard</p>
+          <h1>Loading your workspace</h1>
+          <p>Connecting your clients, content tools and growth systems.</p>
         </div>
-      </div>
+      </main>
     );
   }
 
+  const activeSocialDrive = clients.filter(hasSocialDrive).length;
+  const reviewEnabled = clients.filter((client) => !!client.review_token).length;
+  const uploadEnabled = clients.filter((client) => !!client.upload_token).length;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">TaskifiAI</h1>
-              <p className="text-gray-600 mt-1">Welcome back{user?.email ? `, ${user.email}` : ''}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard/ads"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                📈 Ad Reports
-              </Link>
-              <Link
-                href="/pipeline"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                📊 Lead Pipeline
-              </Link>
-              <Link
-                href="/clients/new"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                + Add Client
-              </Link>
-              <button
-                onClick={handleSignOut}
-                className="text-gray-600 hover:text-gray-900 font-medium"
-              >
-                Sign Out
-              </button>
+    <div className="taskifi-dashboard">
+      <DashboardNav userEmail={user?.email} />
+
+      <main className="taskifi-main">
+        <section className="taskifi-hero-panel">
+          <div>
+            <p className="taskifi-pill"><span /> One dashboard. Every platform. Connected.</p>
+            <h1>Your client growth workspace.</h1>
+            <p>
+              Manage local-business clients, content approvals, ad reports, reviews and SocialDrive AI links from one clear place.
+            </p>
+            <div className="taskifi-hero-actions">
+              <Link href="/clients/new" className="taskifi-button taskifi-button-primary">Add a client</Link>
+              <Link href="/dashboard/ads" className="taskifi-button taskifi-button-secondary">View ad reports</Link>
             </div>
           </div>
-        </div>
-      </header>
+          <div className="taskifi-hero-image-card" aria-label="TaskifiAI connects local business platforms">
+            <img
+              src="/images/taskifiai-integrations-hero.webp"
+              alt="TaskifiAI connecting Facebook, Instagram, Google Business Profile, Meta, WhatsApp, Google Drive, Google Ads, email and AI tools"
+            />
+          </div>
+        </section>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
-            <p className="text-red-700">{error}</p>
+          <div className="taskifi-alert" role="alert">
+            <strong>Something needs attention:</strong> {error}
           </div>
         )}
 
+        <section className="taskifi-stats-grid" aria-label="Dashboard summary">
+          <article className="taskifi-stat-card">
+            <span>Total clients</span>
+            <strong>{clients.length}</strong>
+            <p>Businesses connected to your workspace.</p>
+          </article>
+          <article className="taskifi-stat-card">
+            <span>SocialDrive AI</span>
+            <strong>{activeSocialDrive}</strong>
+            <p>Clients with upload, review or publishing access.</p>
+          </article>
+          <article className="taskifi-stat-card">
+            <span>Review flows</span>
+            <strong>{reviewEnabled}</strong>
+            <p>Clients ready for content review links.</p>
+          </article>
+          <article className="taskifi-stat-card">
+            <span>Upload portals</span>
+            <strong>{uploadEnabled}</strong>
+            <p>Clients able to send photos and updates.</p>
+          </article>
+        </section>
+
+        <section className="taskifi-section-heading">
+          <div>
+            <p className="taskifi-eyebrow">Clients</p>
+            <h2>Client operating layer</h2>
+          </div>
+          <p>Signed in as {user?.email || 'TaskifiAI user'}</p>
+        </section>
+
         {clients.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <p className="text-gray-600 mb-4 text-lg">No clients yet</p>
-            <p className="text-gray-500 mb-6">Add your first client to get started with TaskifiAI products</p>
-            <Link
-              href="/clients/new"
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              Add Your First Client
-            </Link>
-          </div>
+          <section className="taskifi-empty-state">
+            <p className="taskifi-eyebrow">Start here</p>
+            <h2>No clients yet</h2>
+            <p>Add your first client to connect SocialDrive AI, reviews, ad reports and lead tracking.</p>
+            <Link href="/clients/new" className="taskifi-button taskifi-button-primary">Add your first client</Link>
+          </section>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <section className="taskifi-client-grid" aria-label="Client list">
             {clients.map((client) => (
-              <div key={client.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
-                {/* Client Header */}
-                <div className="flex items-start justify-between mb-4">
+              <article key={client.id} className="taskifi-client-card">
+                <div className="taskifi-client-card-header">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">{client.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{client.industry}</p>
+                    <p className="taskifi-client-industry">{client.industry || 'Local business'}</p>
+                    <h3>{clientName(client)}</h3>
                   </div>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full capitalize">
-                    {client.tier || 'simple'}
-                  </span>
+                  <span className="taskifi-tier">{clientTier(client)}</span>
                 </div>
 
-                {/* Product Badges */}
-                <div className="flex gap-2 mb-4">
-                  {client.socialdrive_enabled ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      SocialDrive
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      SocialDrive
-                    </span>
-                  )}
-                  {client.dmchamp_enabled ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      DM Champ
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      DM Champ
-                    </span>
-                  )}
+                <div className="taskifi-product-row">
+                  <span className={hasSocialDrive(client) ? 'is-live' : ''}>SocialDrive AI</span>
+                  <span className={hasDmChamp(client) ? 'is-live' : ''}>DM Champ</span>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="space-y-2 mb-4">
+                <div className="taskifi-card-actions">
                   {client.upload_token ? (
-                    <a
-                      href={`https://socialdrive-ai.vercel.app/upload/${client.upload_token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      📸 Upload Images
+                    <a href={`https://socialdrive-ai.vercel.app/upload/${client.upload_token}`} target="_blank" rel="noopener noreferrer" className="taskifi-action-primary">
+                      Upload Images
                     </a>
                   ) : (
-                    <button
-                      disabled
-                      className="block w-full bg-gray-300 text-gray-500 text-center px-4 py-2 rounded-lg font-medium cursor-not-allowed"
-                    >
-                      Upload (Not Enabled)
-                    </button>
+                    <button disabled className="taskifi-action-disabled">Upload not enabled</button>
                   )}
-                  
+
                   {client.review_token ? (
-                    <a
-                      href={`https://socialdrive-ai.vercel.app/review?token=${client.review_token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      ✅ Review Posts
+                    <a href={`https://socialdrive-ai.vercel.app/review?token=${client.review_token}`} target="_blank" rel="noopener noreferrer" className="taskifi-action-secondary">
+                      Review Posts
                     </a>
                   ) : (
-                    <button
-                      disabled
-                      className="block w-full bg-gray-300 text-gray-500 text-center px-4 py-2 rounded-lg font-medium cursor-not-allowed"
-                    >
-                      Review (Not Enabled)
-                    </button>
+                    <button disabled className="taskifi-action-disabled">Review not enabled</button>
                   )}
-                  
-                  <a
-                    href="https://socialdrive-ai.vercel.app/client/posting"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    ✍️ Create Post
-                  </a>
-                </div>
 
-                {/* Secondary Actions */}
-                <div className="pt-4 border-t border-gray-200 space-y-2">
-                  <Link
-                    href={`/clients/${client.id}`}
-                    className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    📋 View Details
-                  </Link>
-                  <Link
-                    href={`/clients/${client.id}/team`}
-                    className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-center px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    👥 Manage Team
+                  <Link href={`/client/posting?client_id=${client.id}`} className="taskifi-action-green">
+                    Create a post
                   </Link>
                 </div>
 
-                {/* Footer */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Added {new Date(client.created_at).toLocaleDateString()}
-                  </p>
+                <div className="taskifi-card-footer">
+                  <Link href={`/clients/${client.id}`}>View details</Link>
+                  <Link href={`/clients/${client.id}/products`}>Products</Link>
+                  <Link href={`/clients/${client.id}/team`}>Manage team</Link>
                 </div>
-              </div>
+
+                <p className="taskifi-added">Added {client.created_at ? new Date(client.created_at).toLocaleDateString() : 'recently'}</p>
+              </article>
             ))}
-          </div>
+          </section>
         )}
       </main>
     </div>

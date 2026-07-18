@@ -253,3 +253,443 @@ tbody tr:hover {
 tbody tr {
   border-bottom: 1px solid var(--gray-200);
 }
+
+/* TaskifiAI premium dashboard refresh */
+.taskifi-dashboard,
+.taskifi-auth-page {
+  --tf-primary: #cc6ee7;
+  --tf-primary-dark: #a855c7;
+  --tf-primary-light: #f6ddff;
+  --tf-ink: #0f172a;
+  --tf-muted: #64748b;
+  --tf-soft: #f8fafc;
+  --tf-border: #e2e8f0;
+  --tf-success: #10b981;
+  --tf-shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+  min-height: 100vh;
+  color: var(--tf-ink);
+  background:
+    radial-gradient(circle at 16% 8%, rgba(204, 110, 231, 0.18), transparent 30%),
+    radial-gradient(circle at 90% 2%, rgba(16, 185, 129, 0.10), transparent 26%),
+    linear-gradient(180deg, #fff 0%, #f8fafc 48%, #f3f6fb 100%);
+}
+.taskifi-topbar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.88); backdrop-filter: blur(16px); border-bottom: 1px solid var(--tf-border); }
+.taskifi-topbar-inner { max-width: 1180px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.taskifi-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--tf-ink); }
+.taskifi-brand:hover { color: var(--tf-ink); }
+.taskifi-brand strong { display: block; font-size: 1.05rem; letter-spacing: -0.02em; }
+.taskifi-brand small { display: block; color: var(--tf-muted); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.taskifi-mark { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; font-weight: 900; background: linear-gradient(135deg, var(--tf-primary), var(--tf-primary-dark)); box-shadow: 0 12px 30px rgba(204, 110, 231, .28); }
+.taskifi-brand-logo { width: 132px; height: auto; display: block; flex: 0 0 auto; }
+.taskifi-brand:has(.taskifi-brand-logo) { gap: 14px; }
+.taskifi-nav-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.taskifi-nav-link,
+.taskifi-signout { color: var(--tf-muted); font-weight: 700; font-size: .9rem; background: transparent; border: 0; padding: 10px 12px; }
+.taskifi-nav-link:hover,
+.taskifi-signout:hover { color: var(--tf-ink); }
+.taskifi-nav-cta { display: inline-flex; align-items: center; justify-content: center; padding: 11px 18px; border-radius: 999px; color: #fff; background: var(--tf-primary); font-weight: 800; box-shadow: 0 10px 26px rgba(204,110,231,.26); }
+.taskifi-nav-cta:hover { color: #fff; background: var(--tf-primary-dark); }
+.taskifi-main { max-width: 1180px; margin: 0 auto; padding: 36px 24px 72px; }
+.taskifi-hero-panel { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 32px; align-items: center; background: rgba(255,255,255,.82); border: 1px solid rgba(226,232,240,.9); border-radius: 28px; padding: clamp(28px, 5vw, 56px); box-shadow: var(--tf-shadow); overflow: hidden; position: relative; }
+.taskifi-hero-panel::after { content: ''; position: absolute; inset: auto -80px -120px auto; width: 300px; height: 300px; background: rgba(204,110,231,.14); border-radius: 999px; filter: blur(4px); }
+.taskifi-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--tf-border); color: var(--tf-muted); font-size: .82rem; font-weight: 800; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.taskifi-pill span { width: 8px; height: 8px; border-radius: 999px; background: var(--tf-success); }
+.taskifi-hero-panel h1 { font-size: clamp(2.2rem, 5vw, 4.2rem); line-height: 1.02; letter-spacing: -0.05em; margin: 0 0 18px; }
+.taskifi-hero-panel p { color: var(--tf-muted); font-size: 1.06rem; max-width: 640px; }
+.taskifi-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.taskifi-button { display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; padding: 14px 22px; font-weight: 850; border: 1px solid transparent; transition: .18s ease; }
+.taskifi-button-primary { color: #fff; background: var(--tf-primary); box-shadow: 0 12px 28px rgba(204,110,231,.26); }
+.taskifi-button-primary:hover { color: #fff; background: var(--tf-primary-dark); transform: translateY(-1px); }
+.taskifi-button-secondary { color: var(--tf-ink); background: #fff; border-color: var(--tf-border); }
+.taskifi-button-secondary:hover { color: var(--tf-ink); border-color: #cbd5e1; }
+.taskifi-button-full { width: 100%; }
+.taskifi-orbit-card { min-height: 340px; border-radius: 28px; position: relative; background: radial-gradient(circle at 50% 45%, rgba(204,110,231,.20), transparent 32%), linear-gradient(135deg, #fff, #f8fafc); border: 1px solid var(--tf-border); display: grid; place-items: center; overflow: hidden; }
+.taskifi-orbit-card::before { content: ''; position: absolute; width: 250px; height: 250px; border: 1px dashed rgba(204,110,231,.35); border-radius: 999px; }
+.taskifi-orbit-core { position: relative; z-index: 2; width: 118px; height: 118px; border-radius: 32px; display: grid; place-items: center; color: #fff; font-weight: 900; background: linear-gradient(135deg, var(--tf-primary), var(--tf-primary-dark)); box-shadow: 0 24px 50px rgba(168,85,199,.25); }
+.taskifi-orbit-node { position: absolute; z-index: 2; background: #fff; border: 1px solid var(--tf-border); border-radius: 999px; padding: 10px 14px; color: var(--tf-ink); font-size: .82rem; font-weight: 850; box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+.node-google { top: 38px; left: 42px; }
+.node-social { top: 54px; right: 34px; }
+.node-reviews { bottom: 50px; left: 46px; }
+.node-leads { bottom: 42px; right: 52px; }
+.taskifi-alert { margin-top: 22px; padding: 16px 18px; background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; border-radius: 16px; }
+.taskifi-stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; margin: 24px 0 36px; }
+.taskifi-stat-card,
+.taskifi-client-card,
+.taskifi-empty-state { background: rgba(255,255,255,.9); border: 1px solid var(--tf-border); border-radius: 22px; box-shadow: 0 12px 36px rgba(15,23,42,.06); }
+.taskifi-stat-card { padding: 22px; }
+.taskifi-stat-card span,
+.taskifi-eyebrow,
+.taskifi-client-industry { display: block; color: var(--tf-primary); font-size: .74rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.taskifi-stat-card strong { display: block; font-size: 2.4rem; line-height: 1; margin: 10px 0; letter-spacing: -0.05em; }
+.taskifi-stat-card p,
+.taskifi-section-heading p,
+.taskifi-empty-state p,
+.taskifi-added { color: var(--tf-muted); }
+.taskifi-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 8px 0 18px; }
+.taskifi-section-heading h2 { margin: 6px 0 0; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -0.04em; }
+.taskifi-client-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+.taskifi-client-card { padding: 24px; }
+.taskifi-client-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.taskifi-client-card h3 { margin: 5px 0 0; font-size: 1.25rem; letter-spacing: -0.03em; }
+.taskifi-tier { border: 1px solid var(--tf-border); border-radius: 999px; padding: 6px 10px; background: #fff; color: var(--tf-muted); font-size: .72rem; font-weight: 850; text-transform: capitalize; }
+.taskifi-product-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.taskifi-product-row span { padding: 7px 10px; border-radius: 999px; background: #f1f5f9; color: #64748b; font-size: .75rem; font-weight: 850; }
+.taskifi-product-row .is-live { background: #dcfce7; color: #166534; }
+.taskifi-card-actions { display: grid; gap: 10px; }
+.taskifi-action-primary,
+.taskifi-action-secondary,
+.taskifi-action-green,
+.taskifi-action-disabled { width: 100%; display: inline-flex; justify-content: center; padding: 11px 14px; border-radius: 12px; font-weight: 850; border: 1px solid transparent; }
+.taskifi-action-primary { color: #fff; background: var(--tf-primary); }
+.taskifi-action-primary:hover { color: #fff; background: var(--tf-primary-dark); }
+.taskifi-action-secondary { color: var(--tf-primary-dark); background: var(--tf-primary-light); }
+.taskifi-action-secondary:hover { color: var(--tf-primary-dark); }
+.taskifi-action-green { color: #065f46; background: #d1fae5; }
+.taskifi-action-green:hover { color: #064e3b; }
+.taskifi-action-disabled { color: #94a3b8; background: #f1f5f9; cursor: not-allowed; }
+.taskifi-card-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--tf-border); }
+.taskifi-card-footer a { text-align: center; color: var(--tf-ink); background: #fff; border: 1px solid var(--tf-border); border-radius: 12px; padding: 10px; font-weight: 800; }
+.taskifi-card-footer a:hover { color: var(--tf-primary-dark); border-color: var(--tf-primary-light); }
+.taskifi-added { font-size: .78rem; margin-top: 14px; }
+.taskifi-empty-state { padding: 48px; text-align: center; }
+.taskifi-empty-state h2 { font-size: 2rem; letter-spacing: -0.04em; margin: 8px 0 10px; }
+.taskifi-loading-screen { display: grid; place-items: center; padding: 24px; }
+.taskifi-loading-card { width: min(440px, 100%); padding: 36px; border-radius: 26px; background: #fff; border: 1px solid var(--tf-border); text-align: center; box-shadow: var(--tf-shadow); }
+.taskifi-loading-card h1 { margin: 8px 0; }
+.taskifi-spinner { width: 48px; height: 48px; border-radius: 999px; border: 4px solid var(--tf-primary-light); border-top-color: var(--tf-primary); animation: spin 1s linear infinite; margin: 0 auto 18px; }
+.taskifi-auth-page { display: grid; grid-template-columns: minmax(0,1fr) minmax(380px, 480px); gap: 28px; align-items: center; padding: 32px; }
+.taskifi-auth-brand-panel { min-height: calc(100vh - 64px); border-radius: 32px; padding: clamp(32px, 6vw, 72px); background: rgba(255,255,255,.72); border: 1px solid var(--tf-border); box-shadow: var(--tf-shadow); display: flex; flex-direction: column; justify-content: center; }
+.taskifi-auth-logo { margin-bottom: 48px; }
+.taskifi-auth-brand-panel h1 { font-size: clamp(2.4rem, 5vw, 4.5rem); line-height: 1.02; letter-spacing: -0.06em; max-width: 720px; margin: 0 0 18px; }
+.taskifi-auth-brand-panel p { color: var(--tf-muted); max-width: 620px; font-size: 1.08rem; }
+.taskifi-auth-proof-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 180px)); gap: 12px; margin-top: 34px; }
+.taskifi-auth-proof-grid span { background: #fff; border: 1px solid var(--tf-border); border-radius: 14px; padding: 14px; font-weight: 850; color: var(--tf-ink); }
+.taskifi-auth-card { background: #fff; border: 1px solid var(--tf-border); border-radius: 28px; padding: 34px; box-shadow: var(--tf-shadow); }
+.taskifi-auth-card h2 { font-size: 2rem; letter-spacing: -0.04em; margin: 8px 0; }
+.taskifi-auth-subtitle { color: var(--tf-muted); margin-bottom: 24px; }
+.taskifi-message { padding: 14px 16px; border-radius: 14px; margin-bottom: 18px; font-weight: 750; }
+.taskifi-message.success { background: #dcfce7; color: #166534; }
+.taskifi-message.error { background: #ffe4e6; color: #9f1239; }
+.taskifi-auth-form { display: grid; gap: 16px; }
+.taskifi-auth-form label span { display: block; color: var(--tf-ink); font-weight: 850; font-size: .88rem; margin-bottom: 8px; }
+.taskifi-auth-form input { min-height: 48px; border-radius: 13px; border: 1px solid var(--tf-border); padding: 0 14px; font-size: .95rem; }
+.taskifi-auth-form input:focus { border-color: var(--tf-primary); box-shadow: 0 0 0 4px rgba(204,110,231,.14); }
+.taskifi-auth-link,
+.taskifi-auth-toggle { background: transparent; border: 0; color: var(--tf-primary-dark); font-weight: 850; padding: 0; justify-content: center; }
+.taskifi-auth-link-left { justify-content: flex-start; width: fit-content; }
+.taskifi-auth-toggle { width: 100%; margin-top: 20px; }
+.taskifi-auth-home { display: block; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--tf-border); text-align: center; color: var(--tf-muted); font-weight: 750; }
+.taskifi-auth-home:hover { color: var(--tf-primary-dark); }
+@media (max-width: 980px) {
+  .taskifi-hero-panel,
+  .taskifi-auth-page { grid-template-columns: 1fr; }
+  .taskifi-orbit-card { min-height: 280px; }
+  .taskifi-stats-grid,
+  .taskifi-client-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .taskifi-auth-brand-panel { min-height: auto; }
+}
+@media (max-width: 680px) {
+  .taskifi-topbar-inner,
+  .taskifi-main,
+  .taskifi-auth-page { padding-left: 16px; padding-right: 16px; }
+  .taskifi-topbar-inner { align-items: flex-start; flex-direction: column; }
+  .taskifi-nav-actions { width: 100%; }
+  .taskifi-nav-link { display: none; }
+  .taskifi-nav-cta,
+  .taskifi-signout { flex: 1; justify-content: center; }
+  .taskifi-hero-panel { padding: 24px; }
+  .taskifi-orbit-card { display: none; }
+  .taskifi-stats-grid,
+  .taskifi-client-grid,
+  .taskifi-card-footer,
+  .taskifi-auth-proof-grid { grid-template-columns: 1fr; }
+  .taskifi-section-heading { align-items: flex-start; flex-direction: column; }
+  .taskifi-auth-page { padding-top: 18px; padding-bottom: 18px; }
+  .taskifi-auth-brand-panel { padding: 28px; border-radius: 24px; }
+  .taskifi-auth-card { padding: 26px; border-radius: 24px; }
+}
+
+/* TaskifiAI feature module pages */
+.taskifi-feature-main { padding-top: 28px; }
+.taskifi-feature-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; background: rgba(255,255,255,.86); border: 1px solid var(--tf-border); border-radius: 28px; padding: clamp(26px, 4vw, 44px); box-shadow: var(--tf-shadow); margin-bottom: 24px; }
+.taskifi-feature-hero h1 { font-size: clamp(2.1rem, 5vw, 3.8rem); line-height: 1.03; letter-spacing: -0.055em; margin: 0 0 14px; max-width: 760px; }
+.taskifi-feature-hero p:not(.taskifi-pill) { color: var(--tf-muted); max-width: 700px; font-size: 1.03rem; }
+.taskifi-back-link { display: inline-flex; margin-bottom: 18px; color: var(--tf-muted); font-weight: 850; }
+.taskifi-back-link:hover { color: var(--tf-primary-dark); }
+.taskifi-feature-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; flex-shrink: 0; }
+.taskifi-feature-select { min-height: 46px; border-radius: 12px; border: 1px solid var(--tf-border); background: #fff; color: var(--tf-ink); font-weight: 800; padding: 0 14px; box-shadow: 0 8px 24px rgba(15,23,42,.05); }
+.taskifi-report-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 16px; margin-bottom: 24px; }
+.taskifi-empty-wide { margin-bottom: 24px; }
+.taskifi-soft-badge { display: inline-flex; width: fit-content; align-items: center; border-radius: 999px; padding: 7px 12px; color: var(--tf-primary-dark); background: var(--tf-primary-light); font-size: .78rem; font-weight: 900; }
+.taskifi-module-card { background: rgba(255,255,255,.92); border: 1px solid var(--tf-border); border-radius: 24px; box-shadow: 0 14px 42px rgba(15,23,42,.07); padding: 24px; margin-bottom: 24px; }
+.taskifi-module-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--tf-border); margin-bottom: 18px; }
+.taskifi-module-header h2 { margin: 5px 0 0; font-size: 1.55rem; letter-spacing: -0.04em; }
+.taskifi-list-stack { display: grid; gap: 12px; }
+.taskifi-alert-row,
+.taskifi-report-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: #fff; border: 1px solid var(--tf-border); border-radius: 18px; padding: 16px; }
+.taskifi-alert-row { align-items: flex-start; }
+.taskifi-alert-icon { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: #fef3c7; color: #b45309; font-weight: 950; flex-shrink: 0; }
+.taskifi-alert-row h3,
+.taskifi-report-row h3 { margin: 0 0 4px; font-size: .98rem; }
+.taskifi-alert-row p,
+.taskifi-report-row p { margin: 0; color: var(--tf-muted); font-size: .9rem; }
+.taskifi-alert-row small { display: block; margin-top: 8px; color: var(--tf-primary-dark); font-weight: 750; }
+.taskifi-severity { border-radius: 999px; padding: 6px 10px; font-size: .7rem; font-weight: 900; text-transform: uppercase; background: #fef3c7; color: #92400e; }
+.taskifi-severity.critical { background: #ffe4e6; color: #9f1239; }
+.taskifi-severity.high { background: #ffedd5; color: #9a3412; }
+.taskifi-report-row-metrics { text-align: right; }
+.taskifi-report-row-metrics strong { display: block; }
+.taskifi-report-row-metrics span { color: var(--tf-muted); font-size: .85rem; }
+.taskifi-inner-empty { text-align: center; padding: 42px 20px; background: #f8fafc; border-radius: 18px; }
+.taskifi-inner-empty h3 { margin: 0 0 8px; }
+.taskifi-inner-empty p { margin: 0; color: var(--tf-muted); }
+.taskifi-info-panel { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; align-items: center; background: linear-gradient(135deg, var(--tf-primary), var(--tf-primary-dark)); color: #fff; border-radius: 26px; padding: clamp(26px,4vw,40px); box-shadow: 0 18px 50px rgba(168,85,199,.24); }
+.taskifi-info-panel .taskifi-eyebrow { color: rgba(255,255,255,.75); }
+.taskifi-info-panel h2 { margin: 6px 0 10px; font-size: clamp(1.7rem,3vw,2.4rem); letter-spacing: -.04em; }
+.taskifi-info-panel p { color: rgba(255,255,255,.86); margin: 0; }
+.taskifi-info-panel ul { list-style: none; display: grid; gap: 12px; margin: 0; padding: 0; }
+.taskifi-info-panel li { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 14px; font-weight: 850; }
+.taskifi-form-hero { align-items: center; }
+.taskifi-setup-steps { display: grid; gap: 10px; min-width: 190px; }
+.taskifi-setup-steps span { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--tf-border); border-radius: 14px; padding: 12px 14px; font-weight: 850; color: var(--tf-muted); }
+.taskifi-setup-steps strong { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: var(--tf-primary-light); color: var(--tf-primary-dark); }
+.taskifi-client-form { display: grid; gap: 20px; max-width: 980px; margin: 0 auto; }
+.taskifi-form-card { background: rgba(255,255,255,.94); border: 1px solid var(--tf-border); border-radius: 24px; box-shadow: 0 14px 42px rgba(15,23,42,.07); padding: clamp(22px,4vw,32px); }
+.taskifi-form-card-heading { margin-bottom: 22px; }
+.taskifi-form-card-heading h2 { margin: 5px 0 6px; font-size: 1.55rem; letter-spacing: -.04em; }
+.taskifi-form-card-heading p:not(.taskifi-eyebrow) { color: var(--tf-muted); margin: 0; }
+.taskifi-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+.taskifi-form-grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 16px; }
+.taskifi-form-stack { display: grid; gap: 16px; }
+.taskifi-field span { display: block; color: var(--tf-ink); font-weight: 850; font-size: .88rem; margin-bottom: 8px; }
+.taskifi-field input,
+.taskifi-field textarea,
+.taskifi-field select { width: 100%; border: 1px solid var(--tf-border); border-radius: 13px; background: #fff; color: var(--tf-ink); font-size: .95rem; padding: 12px 14px; outline: none; transition: .18s ease; }
+.taskifi-field input,
+.taskifi-field select { min-height: 48px; }
+.taskifi-field textarea { resize: vertical; }
+.taskifi-field input:focus,
+.taskifi-field textarea:focus,
+.taskifi-field select:focus { border-color: var(--tf-primary); box-shadow: 0 0 0 4px rgba(204,110,231,.14); }
+.taskifi-form-actions { display: flex; justify-content: flex-end; gap: 12px; padding-bottom: 20px; }
+.taskifi-pipeline-stats { margin-top: 0; }
+.taskifi-inline-loading { margin: 28px auto; }
+.taskifi-pipeline-board { display: flex; gap: 16px; overflow-x: auto; padding: 4px 4px 24px; scroll-snap-type: x proximity; }
+.taskifi-pipeline-column { flex: 0 0 310px; background: rgba(255,255,255,.78); border: 1px solid var(--tf-border); border-radius: 22px; padding: 14px; scroll-snap-align: start; box-shadow: 0 12px 36px rgba(15,23,42,.06); }
+.taskifi-pipeline-column-head { display: flex; align-items: center; gap: 10px; padding: 6px 6px 14px; }
+.taskifi-pipeline-column-head h2 { font-size: 1rem; margin: 0; flex: 1; }
+.taskifi-pipeline-column-head strong { border-radius: 999px; background: #f1f5f9; color: var(--tf-muted); min-width: 28px; height: 28px; display: grid; place-items: center; font-size: .82rem; }
+.taskifi-stage-dot { width: 12px; height: 12px; border-radius: 999px; background: #64748b; }
+.taskifi-stage-dot.blue { background: #3b82f6; }
+.taskifi-stage-dot.amber { background: #f59e0b; }
+.taskifi-stage-dot.purple { background: var(--tf-primary); }
+.taskifi-stage-dot.indigo { background: #6366f1; }
+.taskifi-stage-dot.orange { background: #f97316; }
+.taskifi-stage-dot.green { background: #10b981; }
+.taskifi-stage-dot.slate { background: #64748b; }
+.taskifi-lead-stack { display: grid; gap: 10px; }
+.taskifi-lead-card { background: #fff; border: 1px solid var(--tf-border); border-radius: 18px; padding: 14px; cursor: pointer; transition: .18s ease; }
+.taskifi-lead-card:hover { transform: translateY(-1px); box-shadow: 0 14px 34px rgba(15,23,42,.10); border-color: var(--tf-primary-light); }
+.taskifi-lead-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.taskifi-lead-card h3 { margin: 0 0 3px; font-size: .98rem; }
+.taskifi-lead-card p { margin: 0; color: var(--tf-muted); font-size: .8rem; }
+.taskifi-source-chip { border-radius: 999px; background: var(--tf-primary-light); color: var(--tf-primary-dark); padding: 5px 8px; font-size: .68rem; font-weight: 900; white-space: nowrap; }
+.taskifi-lead-value,
+.taskifi-followup { display: inline-flex; align-items: center; gap: 5px; color: var(--tf-muted); font-size: .78rem; font-weight: 800; margin-bottom: 8px; }
+.taskifi-followup.overdue { color: #dc2626; }
+.taskifi-lead-tools { display: flex; gap: 6px; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--tf-border); }
+.taskifi-lead-tools button { width: 30px; height: 30px; border: 1px solid var(--tf-border); background: #fff; border-radius: 10px; display: grid; place-items: center; color: var(--tf-muted); }
+.taskifi-lead-tools button:hover { color: var(--tf-primary-dark); border-color: var(--tf-primary-light); }
+.taskifi-lead-status { width: 100%; margin-top: 10px; border: 1px solid var(--tf-border); border-radius: 10px; padding: 8px 10px; color: var(--tf-ink); background: #fff; font-weight: 750; font-size: .8rem; }
+.taskifi-lead-empty { min-height: 72px; display: grid; place-items: center; color: var(--tf-muted); background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 16px; font-weight: 750; font-size: .85rem; }
+@media (max-width: 980px) {
+  .taskifi-feature-hero,
+  .taskifi-info-panel { grid-template-columns: 1fr; flex-direction: column; align-items: flex-start; }
+  .taskifi-report-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .taskifi-feature-actions { width: 100%; justify-content: flex-start; }
+}
+@media (max-width: 680px) {
+  .taskifi-feature-hero { padding: 24px; }
+  .taskifi-feature-actions,
+  .taskifi-form-actions { flex-direction: column; align-items: stretch; }
+  .taskifi-feature-actions .taskifi-button,
+  .taskifi-form-actions .taskifi-button { width: 100%; }
+  .taskifi-feature-select { width: 100%; }
+  .taskifi-report-grid,
+  .taskifi-form-grid,
+  .taskifi-form-grid.three { grid-template-columns: 1fr; }
+  .taskifi-module-header,
+  .taskifi-alert-row,
+  .taskifi-report-row { flex-direction: column; align-items: flex-start; }
+  .taskifi-report-row-metrics { text-align: left; }
+  .taskifi-info-panel { display: block; }
+  .taskifi-info-panel ul { margin-top: 18px; }
+}
+
+/* TaskifiAI dashboard spine additions */
+.taskifi-shell-nav { position: sticky; top: 0; z-index: 30; }
+.taskifi-primary-nav { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 999px; background: rgba(248, 250, 252, .86); }
+.taskifi-primary-nav-link { color: var(--tf-muted); font-weight: 800; font-size: 13px; padding: 9px 13px; border-radius: 999px; transition: .18s ease; }
+.taskifi-primary-nav-link:hover { color: var(--tf-ink); background: #fff; }
+.taskifi-primary-nav-link.active { color: var(--tf-ink); background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, .08); }
+.taskifi-nav-actions-compact { gap: 10px; }
+.taskifi-user-chip { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tf-muted); border: 1px solid rgba(15, 23, 42, .08); border-radius: 999px; padding: 8px 11px; font-size: 12px; font-weight: 800; background: #fff; }
+.taskifi-module-header-wrap { flex-wrap: wrap; align-items: flex-start; }
+.taskifi-search-input { max-width: 380px; min-height: 46px; border-radius: 16px; border-color: rgba(15, 23, 42, .12); box-shadow: none; }
+.taskifi-client-list { display: grid; gap: 14px; }
+.taskifi-client-list-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 18px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 22px; background: linear-gradient(135deg, #fff, #fbfcff); }
+.taskifi-client-avatar { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px; background: var(--tf-primary-light); color: var(--tf-primary-dark); font-weight: 950; font-size: 22px; }
+.taskifi-client-list-main h3 { margin: 0; color: var(--tf-ink); font-size: 18px; }
+.taskifi-client-list-main p { margin: 4px 0 10px; color: var(--tf-muted); font-size: 13px; }
+.taskifi-mini-chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.taskifi-mini-chip-row span { border: 1px solid rgba(15, 23, 42, .08); border-radius: 999px; padding: 5px 9px; color: var(--tf-muted); background: #fff; font-weight: 800; font-size: 11px; }
+.taskifi-mini-chip-row span.is-live { color: #166534; background: #dcfce7; border-color: #bbf7d0; }
+.taskifi-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.taskifi-row-actions a, .taskifi-row-actions span { color: var(--tf-ink); background: #fff; border: 1px solid rgba(15, 23, 42, .1); border-radius: 999px; padding: 8px 11px; font-size: 12px; font-weight: 900; }
+.taskifi-row-actions.compact { justify-content: flex-start; }
+.taskifi-crm-grid, .taskifi-client-intel-grid, .taskifi-product-connect-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.taskifi-span-2 { grid-column: 1 / -1; }
+.taskifi-crm-row, .taskifi-activity-row-lite { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 18px; background: #fff; }
+.taskifi-crm-row h3, .taskifi-activity-row-lite h3 { margin: 0; color: var(--tf-ink); font-size: 15px; }
+.taskifi-crm-row p, .taskifi-activity-row-lite p { margin: 3px 0 0; color: var(--tf-muted); font-size: 13px; }
+.taskifi-activity-row-lite { justify-content: flex-start; }
+.taskifi-activity-row-lite small { margin-left: auto; color: var(--tf-muted); font-weight: 800; }
+.taskifi-activity-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--tf-primary); box-shadow: 0 0 0 6px var(--tf-primary-light); flex: 0 0 auto; }
+.taskifi-source-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.taskifi-source-card { padding: 18px; border-radius: 20px; background: linear-gradient(135deg, #f8fafc, #fff); border: 1px solid rgba(15, 23, 42, .08); }
+.taskifi-source-card strong { display: block; color: var(--tf-ink); margin-bottom: 4px; }
+.taskifi-source-card span { color: var(--tf-muted); font-size: 13px; font-weight: 700; }
+.taskifi-detail-list { display: grid; gap: 12px; }
+.taskifi-detail-list div { display: grid; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid rgba(15, 23, 42, .07); }
+.taskifi-detail-list div:last-child { border-bottom: 0; padding-bottom: 0; }
+.taskifi-detail-list dt { color: var(--tf-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 950; }
+.taskifi-detail-list dd { color: var(--tf-ink); font-weight: 750; }
+.taskifi-muted-note { margin-top: 14px; color: var(--tf-muted); font-size: 13px; }
+.taskifi-product-status-list, .taskifi-action-list, .taskifi-product-links { display: grid; gap: 11px; }
+.taskifi-product-status-list div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 16px; color: var(--tf-muted); font-weight: 800; }
+.taskifi-product-status-list strong { color: var(--tf-ink); }
+.taskifi-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; margin-right: 4px; flex: 0 0 auto; }
+.taskifi-status-dot.live { background: #22c55e; box-shadow: 0 0 0 5px #dcfce7; }
+.taskifi-status-dot.planned { background: var(--tf-primary); box-shadow: 0 0 0 5px var(--tf-primary-light); }
+.taskifi-action-list a, .taskifi-product-links a, .taskifi-product-links span { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 14px; background: #fff; color: var(--tf-ink); font-weight: 850; }
+.taskifi-product-connect-card { background: #fff; border: 1px solid rgba(15, 23, 42, .08); border-radius: 28px; padding: 24px; box-shadow: 0 22px 60px rgba(15, 23, 42, .08); }
+.taskifi-product-connect-card.muted { background: linear-gradient(135deg, #f8fafc, #fff); }
+.taskifi-product-connect-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 14px; }
+.taskifi-product-connect-head h2 { margin: 4px 0 0; font-size: 23px; color: var(--tf-ink); }
+.taskifi-product-connect-card > p { color: var(--tf-muted); margin: 0 0 18px; }
+.taskifi-connection-badge { border-radius: 999px; padding: 7px 10px; background: #f1f5f9; color: var(--tf-muted); font-size: 11px; font-weight: 950; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+.taskifi-connection-badge.live { color: #166534; background: #dcfce7; }
+.taskifi-connection-badge.planned { color: var(--tf-primary-dark); background: var(--tf-primary-light); }
+.taskifi-feature-actions.left { justify-content: flex-start; margin-top: 18px; }
+.taskifi-success-panel { padding: 16px 18px; border: 1px solid #bbf7d0; color: #166534; background: #f0fdf4; border-radius: 18px; font-weight: 800; }
+.taskifi-soft-link { color: var(--tf-primary-dark); font-weight: 900; }
+.taskifi-brand-context-main { --tf-brand-card: rgba(255,255,255,.92); }
+.taskifi-brand-context-hero { background: linear-gradient(135deg, #fff 0%, #fbf5ff 55%, #f8fafc 100%); }
+.taskifi-brand-context-stats { margin-top: 0; }
+.taskifi-brand-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 24px; padding: 8px; width: fit-content; max-width: 100%; border: 1px solid rgba(15, 23, 42, .08); border-radius: 999px; background: rgba(255,255,255,.78); box-shadow: 0 14px 38px rgba(15,23,42,.06); }
+.taskifi-brand-tabs button { min-height: 42px; border-radius: 999px; border: 0; padding: 0 14px; background: transparent; color: var(--tf-muted); font-weight: 900; gap: 8px; }
+.taskifi-brand-tabs button.active { color: var(--tf-ink); background: #fff; box-shadow: 0 8px 22px rgba(15, 23, 42, .08); }
+.taskifi-brand-tabs button span { display: inline-grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #f1f5f9; color: var(--tf-muted); font-size: 11px; }
+.taskifi-brand-tabs button.active span { background: var(--tf-primary-light); color: var(--tf-primary-dark); }
+.taskifi-brand-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.taskifi-brand-voice-card p { color: var(--tf-ink); font-size: 1.02rem; line-height: 1.7; white-space: pre-wrap; margin: 0; }
+.taskifi-brand-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.taskifi-brand-card-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.taskifi-brand-mini-card { padding: 18px; border-radius: 20px; border: 1px solid rgba(15, 23, 42, .08); background: linear-gradient(135deg, #fff, #fbfcff); }
+.taskifi-brand-mini-card h3 { margin: 0 0 8px; color: var(--tf-ink); font-size: 1rem; }
+.taskifi-brand-mini-card > span { display: inline-flex; margin-bottom: 10px; border-radius: 999px; padding: 5px 9px; color: var(--tf-primary-dark); background: var(--tf-primary-light); font-size: 11px; font-weight: 900; }
+.taskifi-brand-mini-card p { margin: 0 0 10px; color: var(--tf-muted); font-size: 14px; }
+.taskifi-brand-mini-card small { display: block; color: var(--tf-muted); font-size: 12px; line-height: 1.5; }
+.taskifi-caption-library { display: grid; gap: 18px; }
+.taskifi-caption-group { display: grid; gap: 12px; }
+.taskifi-caption-group h3 { margin: 0; color: var(--tf-ink); font-size: 1.1rem; letter-spacing: -.02em; }
+.taskifi-caption-group h3 span { margin-left: 8px; color: var(--tf-muted); font-size: .82rem; font-weight: 800; }
+.taskifi-caption-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; padding: 16px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 18px; background: #fff; }
+.taskifi-caption-card p { margin: 0; color: var(--tf-ink); white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
+.taskifi-caption-card button { border: 1px solid rgba(15, 23, 42, .08); border-radius: 999px; background: #fff; color: var(--tf-primary-dark); font-weight: 900; padding: 9px 12px; white-space: nowrap; }
+.taskifi-caption-card button:hover { background: var(--tf-primary-light); }
+.taskifi-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.taskifi-chip-row span { display: inline-flex; align-items: center; min-height: 32px; border-radius: 999px; padding: 6px 11px; background: #f8fafc; border: 1px solid rgba(15, 23, 42, .08); color: var(--tf-muted); font-size: 12px; font-weight: 900; }
+.taskifi-chip-row.strong span { color: var(--tf-primary-dark); background: var(--tf-primary-light); border-color: rgba(204, 110, 231, .18); }
+.taskifi-chip-row.danger span { color: #9f1239; background: #ffe4e6; border-color: #fecdd3; }
+.taskifi-check-list { list-style: none; display: grid; gap: 10px; padding: 0; margin: 0; }
+.taskifi-check-list li { display: flex; gap: 10px; align-items: flex-start; padding: 13px; border-radius: 16px; background: #fff; border: 1px solid rgba(15, 23, 42, .08); color: var(--tf-ink); font-weight: 800; }
+.taskifi-check-list li::before { content: '✓'; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; background: #dcfce7; color: #166534; flex: 0 0 auto; font-size: 12px; font-weight: 950; }
+.taskifi-check-list.clock li::before { content: '•'; background: var(--tf-primary-light); color: var(--tf-primary-dark); }
+.taskifi-pre-wrap { white-space: pre-wrap; line-height: 1.65; }
+@media (max-width: 1080px) { .taskifi-topbar-inner { flex-wrap: wrap; } .taskifi-primary-nav { order: 3; width: 100%; overflow-x: auto; justify-content: flex-start; } .taskifi-source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .taskifi-brand-layout, .taskifi-brand-card-grid, .taskifi-brand-card-grid.two { grid-template-columns: 1fr; } .taskifi-brand-tabs { width: 100%; border-radius: 24px; } .taskifi-brand-tabs button { flex: 1; justify-content: center; } }
+@media (max-width: 760px) { .taskifi-client-list-row { grid-template-columns: 1fr; } .taskifi-client-avatar { display: none; } .taskifi-row-actions { justify-content: flex-start; } .taskifi-crm-grid, .taskifi-client-intel-grid, .taskifi-product-connect-grid { grid-template-columns: 1fr; } .taskifi-source-grid { grid-template-columns: 1fr; } .taskifi-user-chip { display: none; } .taskifi-caption-card { grid-template-columns: 1fr; } .taskifi-caption-card button { justify-content: center; } }
+
+/* TaskifiAI client-facing dashboard additions */
+.taskifi-client-dashboard .taskifi-feature-hero { background: linear-gradient(135deg, #ffffff 0%, #fbf5ff 58%, #f8fafc 100%); }
+.taskifi-client-shell-nav .taskifi-brand small { color: var(--tf-primary-dark); }
+.taskifi-client-home-grid,
+.taskifi-client-reports-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.taskifi-client-action-grid { display: grid; gap: 12px; }
+.taskifi-client-action-grid a,
+.taskifi-client-action-grid span { display: flex; align-items: center; justify-content: space-between; min-height: 54px; padding: 0 16px; border-radius: 18px; border: 1px solid rgba(15, 23, 42, .08); background: #fff; color: var(--tf-ink); font-weight: 900; }
+.taskifi-client-action-grid a::after { content: '→'; color: var(--tf-primary); font-size: 18px; }
+.taskifi-client-action-grid span { color: var(--tf-muted); background: #f8fafc; }
+.taskifi-report-mini-grid,
+.taskifi-report-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.taskifi-report-card-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.taskifi-posting-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.taskifi-post-form { max-width: none; gap: 14px; }
+.taskifi-post-list { display: grid; gap: 14px; }
+.taskifi-post-row { display: grid; grid-template-columns: 128px 112px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 22px; background: #fff; }
+.taskifi-post-row img,
+.taskifi-post-placeholder { width: 112px; height: 88px; object-fit: cover; border-radius: 16px; background: #f1f5f9; border: 1px solid rgba(15, 23, 42, .08); }
+.taskifi-post-placeholder { display: grid; place-items: center; color: var(--tf-muted); font-size: 12px; font-weight: 850; }
+.taskifi-post-check { display: grid; gap: 8px; color: var(--tf-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.taskifi-post-check input { width: 20px; height: 20px; accent-color: var(--tf-primary); }
+.taskifi-post-copy h3 { margin: 0 0 6px; font-size: 16px; color: var(--tf-ink); }
+.taskifi-post-copy p { margin: 0 0 8px; color: var(--tf-primary-dark); font-size: 13px; font-weight: 750; }
+.taskifi-post-copy small { color: var(--tf-muted); font-weight: 750; }
+.taskifi-report-autoload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.taskifi-report-autoload-card { padding: 18px; border-radius: 22px; background: linear-gradient(135deg, #fff, #fbfcff); border: 1px solid rgba(15, 23, 42, .08); }
+.taskifi-report-autoload-card h3 { margin: 4px 0 0; color: var(--tf-ink); font-size: 18px; letter-spacing: -.03em; }
+.taskifi-report-autoload-card > p { margin: 0 0 14px; color: var(--tf-muted); font-size: 14px; line-height: 1.6; }
+.taskifi-report-metric-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.taskifi-report-metric-strip div { border: 1px solid rgba(15, 23, 42, .08); border-radius: 16px; background: #fff; padding: 12px; }
+.taskifi-report-metric-strip strong { display: block; color: var(--tf-ink); font-size: 18px; line-height: 1; margin-bottom: 5px; }
+.taskifi-report-metric-strip span { color: var(--tf-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; }
+.taskifi-report-recommendations { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+.taskifi-report-recommendations li { display: flex; gap: 8px; color: var(--tf-muted); font-size: 13px; line-height: 1.45; }
+.taskifi-report-recommendations li::before { content: '•'; color: var(--tf-primary); font-weight: 950; }
+@media (max-width: 900px) {
+  .taskifi-client-home-grid,
+  .taskifi-client-reports-grid,
+  .taskifi-posting-grid { grid-template-columns: 1fr; }
+  .taskifi-report-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .taskifi-report-mini-grid,
+  .taskifi-report-card-grid { grid-template-columns: 1fr; }
+  .taskifi-report-autoload-grid,
+  .taskifi-report-metric-strip { grid-template-columns: 1fr; }
+  .taskifi-post-row { grid-template-columns: 1fr; }
+  .taskifi-post-row img,
+  .taskifi-post-placeholder { width: 100%; height: 180px; }
+}
+
+/* TaskifiAI integrations hero image */
+.taskifi-hero-image-card {
+  width: min(420px, 100%);
+  margin-left: auto;
+  border-radius: 34px;
+  padding: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(248,250,252,.9));
+  border: 1px solid rgba(15, 23, 42, .08);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .14);
+}
+.taskifi-hero-image-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 26px;
+}
+@media (max-width: 900px) {
+  .taskifi-hero-image-card { margin: 0 auto; width: min(360px, 100%); padding: 14px; border-radius: 28px; }
+  .taskifi-hero-image-card img { border-radius: 22px; }
+}

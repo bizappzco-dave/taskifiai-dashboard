@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireClientRouteAccess } from '@/lib/client-access';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
 /**
@@ -10,8 +11,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const clientId = params.id;
+
+    const accessResult = await requireClientRouteAccess(request, clientId);
+    if (accessResult.response) return accessResult.response;
+
+    const supabase = getSupabaseAdmin() as any;
 
     const { data: brandContext, error } = await supabase
       .from('brand_contexts')
@@ -42,8 +47,12 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = getSupabaseAdmin();
     const clientId = params.id;
+
+    const accessResult = await requireClientRouteAccess(request, clientId, { minimumRole: 'editor' });
+    if (accessResult.response) return accessResult.response;
+
+    const supabase = getSupabaseAdmin() as any;
     const body = await request.json();
 
     const { data: existing } = await supabase

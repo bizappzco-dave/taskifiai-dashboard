@@ -1,340 +1,301 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 interface BrandContext {
   id: string;
   client_id: string;
-  brand_voice: string;
-  content_styles: Array<{
-    name: string;
-    length: string;
-    purpose: string;
-    use_when: string;
+  brand_voice?: string | null;
+  content_styles?: Array<{
+    name?: string;
+    label?: string;
+    length?: string;
+    purpose?: string;
+    use_when?: string;
     structure?: string;
     format?: string;
-  }>;
-  hashtag_strategy: {
-    philosophy: string;
-    primary: string[];
-    secondary: string[];
-    avoid: string[];
-  };
-  caption_library: Array<{
-    type: string;
-    captions: string[];
-  }>;
-  posting_cadence: {
-    weekly_mix: string[];
-    best_times: string[];
+    value?: string;
+  }> | null;
+  hashtag_strategy?: {
+    philosophy?: string;
+    primary?: string[];
+    secondary?: string[];
+    avoid?: string[];
+  } | null;
+  caption_library?: Array<{
+    type?: string;
+    label?: string;
+    captions?: string[];
+  }> | null;
+  posting_cadence?: {
+    weekly_mix?: string[];
+    best_times?: string[];
     notes?: string;
-  };
-  image_matching: Array<{
-    image_type: string;
-    best_for: string[];
-    why: string;
-  }>;
-  assets_reference: string;
+    frequency?: string;
+  } | null;
+  image_matching?: Array<{
+    image_type?: string;
+    best_for?: string[];
+    why?: string;
+  }> | null;
+  assets_reference?: string | null;
+}
+
+type TabId = 'overview' | 'captions' | 'hashtags' | 'cadence';
+
+const emptyText = 'Not set yet';
+
+function safeArray<T>(value?: T[] | null): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function EmptyPanel({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="taskifi-inner-empty">
+      <h3>{title}</h3>
+      <p>{body}</p>
+    </div>
+  );
 }
 
 export default function BrandContextPage() {
   const params = useParams();
-  const router = useRouter();
+  const clientId = params.id as string;
   const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'captions' | 'hashtags' | 'cadence'>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params.id) {
-      fetchBrandContext(params.id as string);
-    }
-  }, [params.id]);
+    if (clientId) fetchBrandContext(clientId);
+  }, [clientId]);
 
-  const fetchBrandContext = async (id: string) => {
+  async function fetchBrandContext(id: string) {
     try {
+      setError(null);
       const res = await fetch(`/api/clients/${id}/brand-context`);
-      if (!res.ok) throw new Error('Failed to load brand context');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load brand context');
       setBrandContext(data.brandContext);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load brand context');
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  async function copyCaption(caption: string, key: string) {
+    await navigator.clipboard.writeText(caption);
+    setCopied(key);
+    window.setTimeout(() => setCopied(null), 1800);
+  }
+
+  const summary = useMemo(() => {
+    const captionCount = safeArray(brandContext?.caption_library).reduce((sum, lib) => sum + safeArray(lib.captions).length, 0);
+    const styleCount = safeArray(brandContext?.content_styles).length;
+    const hashtagCount = [
+      ...safeArray(brandContext?.hashtag_strategy?.primary),
+      ...safeArray(brandContext?.hashtag_strategy?.secondary),
+    ].length;
+    const matchingCount = safeArray(brandContext?.image_matching).length;
+    return { captionCount, styleCount, hashtagCount, matchingCount };
+  }, [brandContext]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading brand context...</p>
+      <main className="taskifi-dashboard taskifi-loading-screen">
+        <div className="taskifi-loading-card">
+          <div className="taskifi-spinner" />
+          <p className="taskifi-eyebrow">Brand context</p>
+          <h1>Loading AI brand guide</h1>
+          <p>Pulling caption rules, hashtags and posting guidance.</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error || !brandContext) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <svg className="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
-          <p className="mt-1 text-sm text-gray-500">{error || 'No brand context found'}</p>
-          <div className="mt-6">
-            <Link
-              href={`/clients/${params.id}`}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              ← Back to Client
-            </Link>
-          </div>
-        </div>
+      <div className="taskifi-dashboard">
+        <DashboardNav />
+        <main className="taskifi-main">
+          <section className="taskifi-empty-state">
+            <p className="taskifi-eyebrow">Brand context</p>
+            <h1>{error || 'No brand context found'}</h1>
+            <p>Create the client brand context from onboarding so captions and reports can use the same source of truth.</p>
+            <Link href={`/clients/${clientId}`} className="taskifi-button taskifi-button-primary">Back to client</Link>
+          </section>
+        </main>
       </div>
     );
   }
 
+  const contentStyles = safeArray(brandContext.content_styles);
+  const captionLibrary = safeArray(brandContext.caption_library);
+  const imageMatching = safeArray(brandContext.image_matching);
+  const primaryTags = safeArray(brandContext.hashtag_strategy?.primary);
+  const secondaryTags = safeArray(brandContext.hashtag_strategy?.secondary);
+  const avoidTags = safeArray(brandContext.hashtag_strategy?.avoid);
+  const weeklyMix = safeArray(brandContext.posting_cadence?.weekly_mix);
+  const bestTimes = safeArray(brandContext.posting_cadence?.best_times);
+
+  const tabs: Array<{ id: TabId; label: string; count?: number }> = [
+    { id: 'overview', label: 'Overview', count: summary.styleCount + summary.matchingCount },
+    { id: 'captions', label: 'Captions', count: summary.captionCount },
+    { id: 'hashtags', label: 'Hashtags', count: summary.hashtagCount },
+    { id: 'cadence', label: 'Cadence', count: weeklyMix.length + bestTimes.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Link
-                href={`/clients/${params.id}`}
-                className="text-sm text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Client
-              </Link>
-              <h1 className="mt-2 text-3xl font-bold text-gray-900">Brand Context</h1>
-              <p className="text-gray-500 mt-1">Brand guidelines, caption library, and content strategy</p>
-            </div>
+    <div className="taskifi-dashboard">
+      <DashboardNav />
+      <main className="taskifi-main taskifi-feature-main taskifi-brand-context-main">
+        <section className="taskifi-feature-hero taskifi-brand-context-hero">
+          <div>
+            <Link href={`/clients/${clientId}`} className="taskifi-back-link">← Back to Client Intelligence</Link>
+            <p className="taskifi-pill"><span /> AI-ready brand guide</p>
+            <h1>Brand context.</h1>
+            <p>Caption tone, reusable post styles, hashtag rules and image matching guidance for this client.</p>
           </div>
-
-          {/* Tabs */}
-          <div className="mt-6 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {[
-                { id: 'overview', label: 'Overview', count: 1 },
-                { id: 'captions', label: 'Caption Library', count: brandContext.caption_library.reduce((sum, lib) => sum + lib.captions.length, 0) },
-                { id: 'hashtags', label: 'Hashtag Strategy', count: 1 },
-                { id: 'cadence', label: 'Posting Cadence', count: 1 },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`
-                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
-                    ${activeTab === tab.id
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }
-                  `}
-                >
-                  {tab.label}
-                  {tab.id !== 'overview' && (
-                    <span className={`ml-2 py-0.5 px-2 rounded-full text-xs ${
-                      activeTab === tab.id ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
+          <div className="taskifi-feature-actions">
+            <Link href={`/clients/${clientId}/products`} className="taskifi-button taskifi-button-secondary">Products</Link>
+            <Link href="/clients" className="taskifi-button taskifi-button-primary">All clients</Link>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section className="taskifi-stats-grid taskifi-brand-context-stats" aria-label="Brand context summary">
+          <article className="taskifi-stat-card"><span>Styles</span><strong>{summary.styleCount}</strong><p>Reusable caption formats.</p></article>
+          <article className="taskifi-stat-card"><span>Captions</span><strong>{summary.captionCount}</strong><p>Approved copy starters.</p></article>
+          <article className="taskifi-stat-card"><span>Hashtags</span><strong>{summary.hashtagCount}</strong><p>Primary and rotation tags.</p></article>
+          <article className="taskifi-stat-card"><span>Images</span><strong>{summary.matchingCount}</strong><p>Visual matching rules.</p></article>
+        </section>
+
+        <section className="taskifi-brand-tabs" aria-label="Brand context sections">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={activeTab === tab.id ? 'active' : ''}
+            >
+              {tab.label}
+              <span>{tab.count ?? 0}</span>
+            </button>
+          ))}
+        </section>
+
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Brand Voice */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Brand Voice</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{brandContext.brand_voice}</p>
-            </div>
-
-            {/* Content Styles */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Content Styles</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {brandContext.content_styles.map((style, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900">{style.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{style.length}</p>
-                    <p className="text-sm text-gray-600 mt-2">{style.purpose}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      <span className="font-medium">Use when:</span> {style.use_when}
-                    </p>
-                    {style.structure && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        <span className="font-medium">Structure:</span> {style.structure}
-                      </p>
-                    )}
-                  </div>
-                ))}
+          <section className="taskifi-brand-layout">
+            <article className="taskifi-module-card taskifi-brand-voice-card">
+              <div className="taskifi-module-header">
+                <div><p className="taskifi-eyebrow">Voice</p><h2>Brand voice</h2></div>
+                <span className="taskifi-soft-badge">AI context</span>
               </div>
-            </div>
+              <p>{brandContext.brand_voice || emptyText}</p>
+            </article>
 
-            {/* Image Matching */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Image-to-Caption Matching</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {brandContext.image_matching.map((match, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 text-sm">{match.image_type}</h3>
-                    <div className="mt-2">
-                      <span className="text-xs font-medium text-gray-500">Best for:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {match.best_for.map((type, i) => (
-                          <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                            {type}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">{match.why}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <article className="taskifi-module-card">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Assets</p><h2>Reference notes</h2></div></div>
+              <p className="taskifi-muted-note taskifi-pre-wrap">{brandContext.assets_reference || emptyText}</p>
+            </article>
 
-            {/* Assets Reference */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Assets Reference</h2>
-              <p className="text-gray-700 whitespace-pre-wrap text-sm">{brandContext.assets_reference}</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'captions' && (
-          <div className="space-y-6">
-            {brandContext.caption_library.map((lib, libIndex) => (
-              <div key={libIndex} className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
-                  {lib.type}
-                  <span className="ml-2 text-sm font-normal text-gray-500">({lib.captions.length} captions)</span>
-                </h2>
-                <div className="space-y-3">
-                  {lib.captions.map((caption, captionIndex) => (
-                    <div key={captionIndex} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <p className="text-gray-700 text-sm whitespace-pre-wrap">{caption}</p>
-                      <button
-                        onClick={() => navigator.clipboard.writeText(caption)}
-                        className="mt-2 text-xs text-indigo-600 hover:text-indigo-900 inline-flex items-center"
-                      >
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy
-                      </button>
+            <article className="taskifi-module-card taskifi-span-2">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Formats</p><h2>Content styles</h2></div></div>
+              {contentStyles.length ? (
+                <div className="taskifi-brand-card-grid">
+                  {contentStyles.map((style, index) => (
+                    <div key={index} className="taskifi-brand-mini-card">
+                      <h3>{style.name || style.label || `Style ${index + 1}`}</h3>
+                      {(style.length || style.format) && <span>{style.length || style.format}</span>}
+                      <p>{style.purpose || style.value || emptyText}</p>
+                      {style.use_when && <small><strong>Use when:</strong> {style.use_when}</small>}
+                      {style.structure && <small><strong>Structure:</strong> {style.structure}</small>}
                     </div>
                   ))}
                 </div>
+              ) : <EmptyPanel title="No content styles yet" body="Add repeatable caption formats for faster monthly posting." />}
+            </article>
+
+            <article className="taskifi-module-card taskifi-span-2">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Visuals</p><h2>Image-to-caption matching</h2></div></div>
+              {imageMatching.length ? (
+                <div className="taskifi-brand-card-grid two">
+                  {imageMatching.map((match, index) => (
+                    <div key={index} className="taskifi-brand-mini-card">
+                      <h3>{match.image_type || `Image type ${index + 1}`}</h3>
+                      <div className="taskifi-chip-row">
+                        {safeArray(match.best_for).map((type, i) => <span key={i}>{type}</span>)}
+                      </div>
+                      <p>{match.why || emptyText}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : <EmptyPanel title="No image rules yet" body="Add guidance that maps uploaded photos to the right caption style." />}
+            </article>
+          </section>
+        )}
+
+        {activeTab === 'captions' && (
+          <section className="taskifi-module-card">
+            <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Caption library</p><h2>Reusable approved captions</h2></div><span className="taskifi-soft-badge">Copy ready</span></div>
+            {captionLibrary.length ? (
+              <div className="taskifi-caption-library">
+                {captionLibrary.map((lib, libIndex) => (
+                  <article key={libIndex} className="taskifi-caption-group">
+                    <h3>{lib.type || lib.label || `Caption group ${libIndex + 1}`} <span>{safeArray(lib.captions).length}</span></h3>
+                    <div className="taskifi-list-stack">
+                      {safeArray(lib.captions).map((caption, captionIndex) => {
+                        const key = `${libIndex}-${captionIndex}`;
+                        return (
+                          <div key={key} className="taskifi-caption-card">
+                            <p>{caption}</p>
+                            <button type="button" onClick={() => copyCaption(caption, key)}>
+                              {copied === key ? 'Copied' : 'Copy caption'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : <EmptyPanel title="No captions yet" body="Add approved caption examples so monthly content stays consistent." />}
+          </section>
         )}
 
         {activeTab === 'hashtags' && (
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Hashtag Strategy</h2>
-              <p className="text-gray-600 mb-4">{brandContext.hashtag_strategy.philosophy}</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Primary Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {brandContext.hashtag_strategy.primary.map((tag, index) => (
-                      <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Secondary Tags (Rotate)</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {brandContext.hashtag_strategy.secondary.map((tag, index) => (
-                      <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Avoid</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {brandContext.hashtag_strategy.avoid.map((tag, index) => (
-                      <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <section className="taskifi-brand-layout">
+            <article className="taskifi-module-card taskifi-span-2">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Strategy</p><h2>Hashtag approach</h2></div></div>
+              <p className="taskifi-muted-note taskifi-pre-wrap">{brandContext.hashtag_strategy?.philosophy || emptyText}</p>
+            </article>
+            <article className="taskifi-module-card"><div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Core</p><h2>Primary tags</h2></div></div><div className="taskifi-chip-row strong">{primaryTags.map((tag) => <span key={tag}>{tag}</span>)}</div>{!primaryTags.length && <EmptyPanel title="No primary tags" body="Add the stable brand and service tags." />}</article>
+            <article className="taskifi-module-card"><div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Rotation</p><h2>Secondary tags</h2></div></div><div className="taskifi-chip-row">{secondaryTags.map((tag) => <span key={tag}>{tag}</span>)}</div>{!secondaryTags.length && <EmptyPanel title="No secondary tags" body="Add monthly rotation tags for variety." />}</article>
+            <article className="taskifi-module-card taskifi-span-2"><div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Avoid</p><h2>Do not use</h2></div></div><div className="taskifi-chip-row danger">{avoidTags.map((tag) => <span key={tag}>{tag}</span>)}</div>{!avoidTags.length && <EmptyPanel title="No blocked tags" body="Add off-brand or low-quality tags to avoid when needed." />}</article>
+          </section>
         )}
 
         {activeTab === 'cadence' && (
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Posting Cadence</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Weekly Mix</h3>
-                  <ul className="space-y-2">
-                    {brandContext.posting_cadence.weekly_mix.map((item, index) => (
-                      <li key={index} className="flex items-start">
-                        <svg className="w-5 h-5 text-indigo-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-gray-700">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Best Times to Post</h3>
-                  <ul className="space-y-2">
-                    {brandContext.posting_cadence.best_times.map((time, index) => (
-                      <li key={index} className="flex items-start">
-                        <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-gray-700">{time}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {brandContext.posting_cadence.notes && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">{brandContext.posting_cadence.notes}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <section className="taskifi-brand-layout">
+            <article className="taskifi-module-card">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Weekly mix</p><h2>What to post</h2></div></div>
+              {weeklyMix.length ? <ul className="taskifi-check-list">{weeklyMix.map((item) => <li key={item}>{item}</li>)}</ul> : <EmptyPanel title="No weekly mix yet" body="Add the regular content categories for this client." />}
+            </article>
+            <article className="taskifi-module-card">
+              <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Timing</p><h2>Best times</h2></div></div>
+              {bestTimes.length ? <ul className="taskifi-check-list clock">{bestTimes.map((time) => <li key={time}>{time}</li>)}</ul> : <EmptyPanel title="No best times yet" body="Add posting windows when performance data is available." />}
+            </article>
+            <article className="taskifi-info-panel taskifi-span-2">
+              <div><p className="taskifi-eyebrow">Notes</p><h2>Cadence guidance</h2><p>{brandContext.posting_cadence?.notes || brandContext.posting_cadence?.frequency || 'No extra cadence notes added yet.'}</p></div>
+              <ul><li>Keep posting consistent</li><li>Match captions to real images</li><li>Use the approved hashtag rules</li></ul>
+            </article>
+          </section>
         )}
-      </div>
+      </main>
     </div>
   );
 }

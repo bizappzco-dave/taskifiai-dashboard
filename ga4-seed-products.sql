@@ -16,5 +16,22 @@ SET description = 'WhatsApp + social DM automation with full analytics stack. Un
     features = '["Unified inbox", "AI auto-replies", "30-second response", "Lead nurturing", "Campaign tracking", "Full analytics stack", "Unified reporting"]'
 WHERE slug = 'dm-champ';
 
+INSERT INTO products (name, slug, description, base_price_monthly, setup_fee, currency, features, active)
+VALUES (
+  'Ultra Marketing Assistant',
+  'ultra-marketing',
+  '24/7 AI marketing assistant workspace with source-backed reports, draft campaigns, approval queues, and managed TaskifiAI access.',
+  NULL,
+  0,
+  'EUR',
+  '["24/7 AI marketing workspace", "Source-backed marketing reports", "Social, email, GBP and review draft workflows", "Approval-required external actions", "Shared tenant-isolated TaskifiAI runtime"]',
+  true
+)
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  description = EXCLUDED.description,
+  features = EXCLUDED.features,
+  active = true;
+
 -- Verify updates
 SELECT name, slug, description, features FROM products WHERE active = true;
