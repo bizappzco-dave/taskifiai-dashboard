@@ -7,7 +7,7 @@ import {
   mapPromotionPayloadToLeadSource,
   mapPromotionPayloadToLeadStage,
   validateTotalSiteDataPromotionPayload,
-} from '../src/lib/totalsitedata/promotion.ts'
+} from '../src/lib/totalsitedata/promotion'
 
 const fixturePath = path.resolve('tests/fixtures/totalsitedata-promotion.payload.json')
 const scriptPath = path.resolve('scripts/smoke-totalsitedata-promotion.sh')

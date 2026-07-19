@@ -110,12 +110,14 @@ export async function loadAccessibleClients(userId: string): Promise<DashboardCl
 
   if (staffError) throw staffError;
 
-  const staffClients = ((staffAccess || []) as StaffAccessRow[])
+  const staffClients = ((staffAccess || []) as unknown as StaffAccessRow[])
     .map((row) => Array.isArray(row.clients) ? row.clients[0] : row.clients)
     .filter(Boolean) as DashboardClient[];
 
+  const ownedDashboardClients = (ownedClients || []) as unknown as DashboardClient[];
+
   const unique = new Map<string, DashboardClient>();
-  [...(ownedClients || []), ...staffClients].forEach((client) => {
+  [...ownedDashboardClients, ...staffClients].forEach((client) => {
     if (client?.id) {
       unique.set(client.id, {
         ...client,

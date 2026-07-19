@@ -1,7 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
 
 // Lazy initialization - don't create client until actually used
-let _supabase: ReturnType<typeof createClient> | null = null
+let _supabase: SupabaseClient<Database> | null = null
 let _supabaseAdmin: ReturnType<typeof createClient> | null = null
 
 export function getSupabaseUrl(): string {
@@ -23,9 +24,9 @@ export function getSupabaseSecretKey(): string {
 }
 
 // Client-side (with RLS) - lazy loaded
-export function getSupabase() {
+export function getSupabase(): SupabaseClient<Database> {
   if (!_supabase) {
-    _supabase = createClient(getSupabaseUrl(), getSupabasePublishableKey())
+    _supabase = createClient<Database>(getSupabaseUrl(), getSupabasePublishableKey())
   }
   return _supabase
 }

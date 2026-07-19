@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {
   mapDMChampEventToActivity,
   mapSocialDriveEventToActivity,
-} from '../src/lib/activities/webhook-events.ts'
+} from '../src/lib/activities/webhook-events'
 
 test('maps inbound DM Champ WhatsApp message to auto-create-compatible activity', () => {
   const activity = mapDMChampEventToActivity({
