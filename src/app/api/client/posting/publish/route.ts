@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { getClientAccessFromRequest, roleAtLeast } from '@/lib/client-access'
+import { isUltraMarketingEnabled } from '@/lib/ultra-marketing'
+import { approvalSeedReference, ULTRA_MARKETING_APPROVAL_KIND } from '@/lib/ultra-marketing-approvals'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +62,19 @@ async function updatePostAfterPublish(supabase: any, postId: string, uploadData:
     .eq('id', postId)
 }
 
+async function approvedPostReferences(supabase: any, clientId: string) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, metadata')
+    .eq('client_id', clientId)
+    .eq('status', 'approved')
+    .filter('metadata->>kind', 'eq', ULTRA_MARKETING_APPROVAL_KIND)
+    .limit(500)
+
+  if (error) throw error
+  return new Set((data || []).map((task: any) => approvalSeedReference(task.metadata)).filter(Boolean))
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -89,6 +104,22 @@ export async function POST(request: Request) {
 
     const selectedPosts = ((posts || []) as PostRow[]).filter((post) => post.id)
     if (selectedPosts.length === 0) return NextResponse.json({ error: 'No posts found for this client' }, { status: 404 })
+
+    if (isUltraMarketingEnabled(access.client)) {
+      const approvedRefs = await approvedPostReferences(supabase, clientId)
+      const missingApproval = selectedPosts.filter((post) => !approvedRefs.has(`post:${post.id}`))
+
+      if (missingApproval.length > 0) {
+        return NextResponse.json({
+          error: 'These posts need approval in the Ultra Marketing queue before publishing.',
+          blocked_post_ids: missingApproval.map((post) => post.id),
+          policy: {
+            approval_required: true,
+            external_action_executed: false,
+          },
+        }, { status: 403 })
+      }
+    }
 
     const jobRows = selectedPosts.map((post) => {
       const urls = Array.isArray(post.image_urls) ? post.image_urls : []

@@ -11,17 +11,24 @@ import {
 } from '../src/lib/ultra-marketing'
 import {
   approvalItemFromTask,
+  approvalSeedReference,
   approvalStatusForDecision,
+  buildAssistantSuggestionApprovalTasks,
   buildApprovalTaskMetadata,
+  buildPostingDraftApprovalTask,
   isOpenApprovalStatus,
   ULTRA_MARKETING_APPROVAL_KIND,
+  ULTRA_MARKETING_APPROVAL_SOURCES,
 } from '../src/lib/ultra-marketing-approvals'
 
 const queriesPath = path.resolve('src/lib/queries.ts')
 const queriesSource = fs.readFileSync(queriesPath, 'utf8')
 const workspaceRouteSource = fs.readFileSync(path.resolve('src/app/api/client/ultra-marketing/workspace/route.ts'), 'utf8')
 const approvalsRouteSource = fs.readFileSync(path.resolve('src/app/api/client/ultra-marketing/approvals/route.ts'), 'utf8')
+const approvalSeedRouteSource = fs.readFileSync(path.resolve('src/app/api/client/ultra-marketing/approvals/seed/route.ts'), 'utf8')
 const workspacePageSource = fs.readFileSync(path.resolve('src/app/client/ultra-marketing/page.tsx'), 'utf8')
+const createPostRouteSource = fs.readFileSync(path.resolve('src/app/api/client/posts/create/route.ts'), 'utf8')
+const publishPostRouteSource = fs.readFileSync(path.resolve('src/app/api/client/posting/publish/route.ts'), 'utf8')
 
 function exportedFunctionBody(source: string, name: string): string {
   const marker = `export async function ${name}`
@@ -170,5 +177,86 @@ test('Ultra Marketing workspace page exposes approval review UI without backend 
   assert.match(workspacePageSource, /method: 'PATCH'/)
   assert.match(workspacePageSource, /Approval queue/)
   assert.match(workspacePageSource, /No external publishing or sending happened from this queue/)
+  assert.doesNotMatch(workspacePageSource, /Ollama|ChatGPT|OpenAI|Hermes|VPS|service role|Supabase/i)
+})
+
+test('Ultra Marketing approval seeds build deterministic assistant and posting draft queue items', () => {
+  const now = '2026-07-20T12:00:00.000Z'
+  const postingSeed = buildPostingDraftApprovalTask({
+    id: 'post-123',
+    client_id: 'client-1',
+    caption: 'Fresh offer for local customers',
+    hashtags: ['#local', '#offer'],
+    image_urls: ['https://example.com/photo.jpg'],
+    platform: 'instagram',
+    status: 'draft',
+  }, { createdBy: 'user-1', now })
+
+  assert.equal(postingSeed.client_id, 'client-1')
+  assert.equal(postingSeed.status, 'pending_approval')
+  assert.equal(postingSeed.metadata.kind, ULTRA_MARKETING_APPROVAL_KIND)
+  assert.equal(postingSeed.metadata.source, ULTRA_MARKETING_APPROVAL_SOURCES.postingDrafts)
+  assert.equal(postingSeed.metadata.external_reference, 'post:post-123')
+  assert.equal(postingSeed.metadata.external_action, 'approval_required_before_execution')
+  assert.equal(approvalSeedReference(postingSeed.metadata), 'post:post-123')
+
+  const assistantSeeds = buildAssistantSuggestionApprovalTasks({ id: 'client-1', name: 'Example Motors' }, { createdBy: 'user-1', now })
+  assert.equal(assistantSeeds.length, 3)
+  assert.equal(assistantSeeds[0].metadata.source, ULTRA_MARKETING_APPROVAL_SOURCES.assistantSuggestions)
+  assert.ok(new Set(assistantSeeds.map((seed) => seed.metadata.external_reference)).has('assistant-suggestion:social_content_draft'))
+  assert.ok(assistantSeeds.every((seed) => seed.metadata.external_action === 'approval_required_before_execution'))
+})
+
+test('Ultra Marketing seed API imports both seed sources without executing external actions', () => {
+  const postBody = exportedFunctionBody(approvalSeedRouteSource, 'POST')
+
+  assert.match(approvalSeedRouteSource, /export const dynamic = 'force-dynamic'/)
+  assert.match(approvalSeedRouteSource, /assistant_suggestions/)
+  assert.match(approvalSeedRouteSource, /posting_drafts/)
+  assert.match(approvalSeedRouteSource, /buildAssistantSuggestionApprovalTasks/)
+  assert.match(approvalSeedRouteSource, /buildPostingDraftApprovalTask/)
+  assert.match(approvalSeedRouteSource, /requireClientRouteAccess\(request, clientId, \{ minimumRole: 'editor' \}\)/)
+  assert.match(approvalSeedRouteSource, /eq\('client_id', clientId\)/, 'seed reads and writes must stay client-scoped')
+  assert.match(approvalSeedRouteSource, /metadata->>kind/, 'seed dedupe must only compare approval queue tasks')
+  assert.match(approvalSeedRouteSource, /not_executed_by_seed/)
+  assert.match(approvalSeedRouteSource, /external_action_executed: false/)
+  assert.doesNotMatch(approvalSeedRouteSource, /fetch\(|UPLOAD_POST|sendEmail|post_now/i)
+})
+
+test('Posting draft creation seeds approval queue for Ultra Marketing clients', () => {
+  const postBody = exportedFunctionBody(createPostRouteSource, 'POST')
+
+  assert.match(createPostRouteSource, /buildPostingDraftApprovalTask/)
+  assert.match(createPostRouteSource, /isUltraMarketingEnabled\(access\.client\)/)
+  assert.match(postBody, /from\('tasks'\)/)
+  assert.match(postBody, /approvalItemFromTask/)
+  assert.match(postBody, /approval/)
+  assert.doesNotMatch(postBody, /UPLOAD_POST|fetch\(/i, 'creating a draft approval must not publish externally')
+})
+
+test('Posting publish route requires approved queue item before external work for Ultra Marketing clients', () => {
+  const postBody = exportedFunctionBody(publishPostRouteSource, 'POST')
+  const guardIndex = postBody.indexOf('isUltraMarketingEnabled(access.client)')
+  const jobIndex = postBody.indexOf("from('posting_jobs')")
+  const uploadIndex = postBody.indexOf('const uploadPostApiKey')
+
+  assert.match(publishPostRouteSource, /approvedPostReferences/)
+  assert.match(publishPostRouteSource, /ULTRA_MARKETING_APPROVAL_KIND/)
+  assert.match(publishPostRouteSource, /status', 'approved'/)
+  assert.match(publishPostRouteSource, /external_action_executed: false/)
+  assert.notEqual(guardIndex, -1, 'publish route must check Ultra Marketing gate')
+  assert.notEqual(jobIndex, -1, 'publish route must still create jobs after approval')
+  assert.notEqual(uploadIndex, -1, 'publish route must still integrate after approval')
+  assert.ok(guardIndex < jobIndex, 'approval guard must run before posting jobs are created')
+  assert.ok(guardIndex < uploadIndex, 'approval guard must run before external upload work')
+})
+
+test('Ultra Marketing workspace page can seed assistant suggestions and posting drafts', () => {
+  assert.match(workspacePageSource, /\/api\/client\/ultra-marketing\/approvals\/seed/)
+  assert.match(workspacePageSource, /assistant_suggestions/)
+  assert.match(workspacePageSource, /posting_drafts/)
+  assert.match(workspacePageSource, /Add suggestions/)
+  assert.match(workspacePageSource, /Import drafts/)
+  assert.match(workspacePageSource, /Nothing was published or sent/)
   assert.doesNotMatch(workspacePageSource, /Ollama|ChatGPT|OpenAI|Hermes|VPS|service role|Supabase/i)
 })

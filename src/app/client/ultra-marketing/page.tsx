@@ -114,6 +114,7 @@ export default function UltraMarketingWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [panelLoading, setPanelLoading] = useState(false);
   const [decisionLoading, setDecisionLoading] = useState<string | null>(null);
+  const [seedLoading, setSeedLoading] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [notice, setNotice] = useState('');
 
@@ -196,6 +197,37 @@ export default function UltraMarketingWorkspacePage() {
     }
   }
 
+  async function seedApprovals(source: 'assistant_suggestions' | 'posting_drafts') {
+    if (!workspaceData) return;
+
+    setSeedLoading(source);
+    setWarnings([]);
+    setNotice('');
+
+    try {
+      const res = await fetchWithDashboardAuth('/api/client/ultra-marketing/approvals/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: workspaceData.client.id,
+          source,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval queue could not be seeded');
+
+      await loadWorkspace(workspaceData.client.id);
+      const label = source === 'assistant_suggestions' ? 'assistant suggestions' : 'posting drafts';
+      setNotice(data.created_count > 0
+        ? `${data.created_count} ${label} added to the approval queue. Nothing was published or sent.`
+        : `No new ${label} to add. Existing queue items were left unchanged.`);
+    } catch (err: any) {
+      setWarnings([err.message || 'Approval queue could not be seeded.']);
+    } finally {
+      setSeedLoading(null);
+    }
+  }
+
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
   const latestReport = workspaceData?.summary.latest_report || null;
   const approvalCount = workspaceData?.approvals_summary?.total_matching ?? workspaceData?.summary.pending_approvals ?? 0;
@@ -264,7 +296,18 @@ export default function UltraMarketingWorkspacePage() {
               </article>
 
               <article className="taskifi-module-card taskifi-span-2">
-                <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Approval queue</p><h2>Review before anything goes live</h2></div><span className="taskifi-soft-badge">{approvalCount} pending</span></div>
+                <div className="taskifi-module-header taskifi-module-header-wrap">
+                  <div><p className="taskifi-eyebrow">Approval queue</p><h2>Review before anything goes live</h2></div>
+                  <div className="taskifi-feature-actions">
+                    <button onClick={() => seedApprovals('assistant_suggestions')} disabled={Boolean(seedLoading)} className="taskifi-button taskifi-button-secondary">
+                      {seedLoading === 'assistant_suggestions' ? 'Adding...' : 'Add suggestions'}
+                    </button>
+                    <button onClick={() => seedApprovals('posting_drafts')} disabled={Boolean(seedLoading)} className="taskifi-button taskifi-button-secondary">
+                      {seedLoading === 'posting_drafts' ? 'Importing...' : 'Import drafts'}
+                    </button>
+                    <span className="taskifi-soft-badge">{approvalCount} pending</span>
+                  </div>
+                </div>
                 <p className="taskifi-muted-note">Approving an item records your decision only. Publishing, sending, review replies and budget-changing work still run through the connected workflow after approval.</p>
                 {workspaceData.approvals.length === 0 ? (
                   <div className="taskifi-inner-empty"><h3>No approvals waiting</h3><p>Draft posts, email campaigns, review replies and ad recommendations will appear here before they can be actioned.</p></div>

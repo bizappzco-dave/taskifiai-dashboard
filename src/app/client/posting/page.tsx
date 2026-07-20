@@ -170,7 +170,9 @@ export default function ClientPostingPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to create post');
 
       setFormData(emptyForm);
-      setMessage('Post saved in TaskifiAI. You can post it now or keep it as a draft.');
+      setMessage(data.approval
+        ? 'Post saved and added to the Ultra Marketing approval queue. It can be posted after approval.'
+        : 'Post saved in TaskifiAI. You can post it now or keep it as a draft.');
       await loadPostingData(selectedClientId);
     } catch (err: any) {
       setMessage(`Post not saved: ${err.message}`);

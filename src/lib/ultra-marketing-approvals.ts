@@ -10,6 +10,11 @@ export const ULTRA_MARKETING_APPROVAL_STATUSES = [
 
 export const ULTRA_MARKETING_OPEN_APPROVAL_STATUSES = ['draft', 'pending', 'pending_approval']
 
+export const ULTRA_MARKETING_APPROVAL_SOURCES = {
+  postingDrafts: 'taskifiai_posting_drafts',
+  assistantSuggestions: 'ultra_marketing_assistant_suggestions',
+} as const
+
 type ApprovalStatus = typeof ULTRA_MARKETING_APPROVAL_STATUSES[number]
 
 export type UltraMarketingApprovalItem = {
@@ -31,6 +36,19 @@ export type UltraMarketingApprovalItem = {
   reviewed_at: string | null
   created_at: string | null
   updated_at: string | null
+}
+
+export type UltraMarketingApprovalTaskInsert = {
+  client_id: string
+  title: string
+  description: string | null
+  status: 'draft' | 'pending_approval'
+  priority: string
+  due_date: string | null
+  created_by: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
 }
 
 export function approvalObjectOrEmpty(value: unknown): Record<string, any> {
@@ -134,4 +152,124 @@ export function buildApprovalTaskMetadata(input: {
     external_reference: input.external_reference || null,
     external_action: 'approval_required_before_execution',
   }
+}
+
+function arrayOfText(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : []
+}
+
+function trimPreview(value: unknown, limit = 700) {
+  const text = textOrNull(value)
+  if (!text) return null
+  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text
+}
+
+function postDraftPreview(post: any) {
+  const caption = trimPreview(post?.caption, 900) || 'Draft caption is ready for review.'
+  const hashtags = arrayOfText(post?.hashtags).join(' ')
+  return hashtags ? `${caption}\n\n${hashtags}` : caption
+}
+
+export function approvalSeedReference(metadata: unknown): string | null {
+  return textOrNull(approvalObjectOrEmpty(metadata).external_reference)
+}
+
+export function buildPostingDraftApprovalTask(
+  post: any,
+  options: { createdBy?: string | null; now?: string } = {}
+): UltraMarketingApprovalTaskInsert {
+  const now = options.now || new Date().toISOString()
+  const platform = textOrNull(post?.platform) || 'instagram'
+  const postId = String(post?.id || '')
+  const imageUrls = arrayOfText(post?.image_urls)
+
+  return {
+    client_id: String(post?.client_id || ''),
+    title: `Approve ${platform} post draft`,
+    description: 'Review this SocialDrive/posting draft before it can be published.',
+    status: 'pending_approval',
+    priority: 'normal',
+    due_date: null,
+    created_by: options.createdBy || null,
+    metadata: buildApprovalTaskMetadata({
+      action_type: 'social_post',
+      channel: platform,
+      summary: trimPreview(post?.caption, 360) || 'Social post draft waiting for review.',
+      draft_preview: postDraftPreview(post),
+      requested_action: 'Approve this post for publishing',
+      source: ULTRA_MARKETING_APPROVAL_SOURCES.postingDrafts,
+      external_reference: `post:${postId}`,
+      extra: {
+        source_table: 'posts',
+        post_id: postId,
+        image_count: imageUrls.length,
+        original_status: textOrNull(post?.status) || 'draft',
+      },
+    }),
+    created_at: now,
+    updated_at: now,
+  }
+}
+
+export function buildAssistantSuggestionApprovalTasks(
+  client: any,
+  options: { createdBy?: string | null; now?: string } = {}
+): UltraMarketingApprovalTaskInsert[] {
+  const now = options.now || new Date().toISOString()
+  const clientId = String(client?.id || '')
+  const name = textOrNull(client?.business_name || client?.name) || 'this client'
+  const common = {
+    client_id: clientId,
+    status: 'pending_approval' as const,
+    priority: 'normal',
+    due_date: null,
+    created_by: options.createdBy || null,
+    created_at: now,
+    updated_at: now,
+  }
+
+  return [
+    {
+      ...common,
+      title: 'Approve assistant social post suggestion',
+      description: `Let the assistant prepare a social post draft for ${name}.`,
+      metadata: buildApprovalTaskMetadata({
+        action_type: 'social_content_draft',
+        channel: 'instagram',
+        summary: `Prepare a client-safe social post idea for ${name} using the latest business context.`,
+        draft_preview: 'Suggested action: create a fresh social post draft for review. No post will be published from this approval.',
+        requested_action: 'Approve assistant to draft content',
+        source: ULTRA_MARKETING_APPROVAL_SOURCES.assistantSuggestions,
+        external_reference: 'assistant-suggestion:social_content_draft',
+      }),
+    },
+    {
+      ...common,
+      title: 'Approve local visibility suggestion',
+      description: `Let the assistant prepare a local visibility update for ${name}.`,
+      metadata: buildApprovalTaskMetadata({
+        action_type: 'local_visibility_update',
+        channel: 'google_business_profile',
+        summary: `Review recent visibility signals and propose the next local update for ${name}.`,
+        draft_preview: 'Suggested action: draft a local update or GBP post for approval. No public reply or profile change happens from this approval.',
+        requested_action: 'Approve assistant to prepare local update',
+        source: ULTRA_MARKETING_APPROVAL_SOURCES.assistantSuggestions,
+        external_reference: 'assistant-suggestion:local_visibility_update',
+      }),
+    },
+    {
+      ...common,
+      title: 'Approve follow-up message suggestion',
+      description: `Let the assistant prepare a follow-up message draft for ${name}.`,
+      metadata: buildApprovalTaskMetadata({
+        action_type: 'lead_follow_up_draft',
+        channel: 'email',
+        summary: `Prepare a reusable follow-up message draft for recent enquiries or warm leads for ${name}.`,
+        draft_preview: 'Suggested action: draft a follow-up message for review. No email, DM or WhatsApp message is sent from this approval.',
+        requested_action: 'Approve assistant to draft follow-up',
+        source: ULTRA_MARKETING_APPROVAL_SOURCES.assistantSuggestions,
+        external_reference: 'assistant-suggestion:lead_follow_up_draft',
+      }),
+    },
+  ]
 }

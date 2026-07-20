@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { getClientAccessFromRequest, roleAtLeast } from '@/lib/client-access'
+import { isUltraMarketingEnabled } from '@/lib/ultra-marketing'
+import { approvalItemFromTask, buildPostingDraftApprovalTask } from '@/lib/ultra-marketing-approvals'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +54,19 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, post })
+    let approval = null
+    if ((post.status || 'draft') === 'draft' && isUltraMarketingEnabled(access.client)) {
+      const { data: approvalTask, error: approvalError } = await supabase
+        .from('tasks')
+        .insert([buildPostingDraftApprovalTask(post, { createdBy: access.userId })] as any)
+        .select('id, client_id, title, description, status, priority, due_date, completed_at, metadata, created_at, updated_at')
+        .single()
+
+      if (approvalError) throw approvalError
+      approval = approvalItemFromTask(approvalTask)
+    }
+
+    return NextResponse.json({ success: true, post, approval })
   } catch (error: any) {
     console.error('TaskifiAI create post error:', error)
     return NextResponse.json({ error: error.message || 'Failed to create post' }, { status: 500 })
