@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import { isUltraMarketingEnabled } from '@/lib/ultra-marketing';
 
 export interface DashboardClient {
   id: string;
@@ -70,19 +71,7 @@ export function hasDmChamp(client: Partial<DashboardClient> | null | undefined):
 }
 
 export function hasUltraMarketing(client: Partial<DashboardClient> | null | undefined): boolean {
-  const productStatus =
-    client?.features?.products?.ultra_marketing?.status ||
-    client?.features?.ultra_marketing?.status;
-  const activeSubscription = client?.products?.some((product) =>
-    product.slug === 'ultra-marketing' && (!product.status || product.status === 'active')
-  );
-
-  return Boolean(
-    client?.ultra_marketing_enabled ||
-    activeSubscription ||
-    productStatus === 'active' ||
-    productStatus === 'trial'
-  );
+  return isUltraMarketingEnabled(client);
 }
 
 export async function requireDashboardUser() {

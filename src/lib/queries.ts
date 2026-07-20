@@ -1,4 +1,10 @@
 import { getSupabaseAdmin } from './supabase'
+import {
+  pauseUltraMarketingFeature,
+  provisionUltraMarketingFeature,
+  ULTRA_MARKETING_APPROVAL_POLICY,
+  ULTRA_MARKETING_PRODUCT_KEY,
+} from './ultra-marketing'
 
 function parseNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
@@ -265,16 +271,6 @@ export async function enableDMChamp(clientId: string, accountData: any) {
   return data
 }
 
-const ULTRA_MARKETING_WORKFLOWS = [
-  'marketing_analysis',
-  'social_content_drafts',
-  'email_campaign_drafts',
-  'gbp_post_drafts',
-  'review_response_drafts',
-  'paid_ads_intelligence',
-  'approval_queue',
-]
-
 function objectOrEmpty(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, any>
@@ -338,20 +334,12 @@ function normalizeClientFeatures(client: any, products: any[] = []): Record<stri
 export async function enableUltraMarketing(clientId: string, options: { tier?: string; enabled_by?: string | null } = {}) {
   const client = await getClient(clientId)
   const now = new Date().toISOString()
-  const existingFeature = objectOrEmpty(client?.features?.products?.ultra_marketing || client?.features?.ultra_marketing)
-  const tier = options.tier || existingFeature.tier || client?.subscription_tier || client?.tier || 'growth'
-  const features = withProductFeature(client, 'ultra_marketing', {
-    enabled: true,
-    status: 'active',
-    tier,
-    enabled_at: existingFeature.enabled_at || now,
-    enabled_by: options.enabled_by || existingFeature.enabled_by || null,
-    approval_policy: existingFeature.approval_policy || 'approval_required_for_external_actions',
-    allowed_workflows: Array.isArray(existingFeature.allowed_workflows)
-      ? existingFeature.allowed_workflows
-      : ULTRA_MARKETING_WORKFLOWS,
-    connected_account_status: objectOrEmpty(existingFeature.connected_account_status),
+  const ultraMarketingFeature = provisionUltraMarketingFeature(client, {
+    tier: options.tier,
+    actorId: options.enabled_by,
+    now,
   })
+  const features = withProductFeature(client, ULTRA_MARKETING_PRODUCT_KEY, ultraMarketingFeature)
 
   await updateClient(clientId, { features })
 
@@ -363,8 +351,11 @@ export async function enableUltraMarketing(clientId: string, options: { tier?: s
     description: '24/7 AI Marketing Assistant workspace access enabled',
     activity_category: 'operations',
     details: {
-      tier,
-      approval_policy: 'approval_required_for_external_actions',
+      tier: ultraMarketingFeature.tier,
+      approval_policy: ultraMarketingFeature.approval_policy || ULTRA_MARKETING_APPROVAL_POLICY,
+      workspace_id: ultraMarketingFeature.workspace && 'id' in ultraMarketingFeature.workspace
+        ? ultraMarketingFeature.workspace.id
+        : null,
     },
   })
 
@@ -374,14 +365,11 @@ export async function enableUltraMarketing(clientId: string, options: { tier?: s
 export async function disableUltraMarketing(clientId: string, options: { disabled_by?: string | null } = {}) {
   const client = await getClient(clientId)
   const now = new Date().toISOString()
-  const existingFeature = objectOrEmpty(client?.features?.products?.ultra_marketing || client?.features?.ultra_marketing)
-  const features = withProductFeature(client, 'ultra_marketing', {
-    ...existingFeature,
-    enabled: false,
-    status: 'paused',
-    paused_at: now,
-    disabled_by: options.disabled_by || existingFeature.disabled_by || null,
+  const ultraMarketingFeature = pauseUltraMarketingFeature(client, {
+    actorId: options.disabled_by,
+    now,
   })
+  const features = withProductFeature(client, ULTRA_MARKETING_PRODUCT_KEY, ultraMarketingFeature)
 
   const updatedClient = await updateClient(clientId, { features })
 

@@ -184,7 +184,10 @@ export default function ClientProductsPage() {
             </div>
             <div className="taskifi-feature-actions left">
               {ultraMarketingLive ? (
-                <button onClick={() => disableProduct('ultra-marketing')} disabled={working === 'disable-ultra-marketing'} className="taskifi-button taskifi-button-secondary">Pause Ultra Marketing</button>
+                <>
+                  <Link href={`/client/ultra-marketing?client_id=${client.id}`} className="taskifi-button taskifi-button-primary">Open workspace</Link>
+                  <button onClick={() => disableProduct('ultra-marketing')} disabled={working === 'disable-ultra-marketing'} className="taskifi-button taskifi-button-secondary">Pause Ultra Marketing</button>
+                </>
               ) : (
                 <button onClick={() => enableProduct('ultra-marketing')} disabled={working === 'enable-ultra-marketing'} className="taskifi-button taskifi-button-primary">Enable Ultra Marketing</button>
               )}

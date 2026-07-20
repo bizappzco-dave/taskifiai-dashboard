@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/supabase';
 
 const clientNavItems = [
   { href: '/client', label: 'Home' },
+  { href: '/client/ultra-marketing', label: 'Assistant' },
   { href: '/client/posting', label: 'Posting' },
   { href: '/client/reports', label: 'Reports' },
 ];
