@@ -121,7 +121,7 @@ export async function POST(request: Request) {
         title: body.title.trim(),
         description: typeof body.description === 'string' ? body.description.trim() || null : null,
         status: body.status === 'draft' ? 'draft' : 'pending_approval',
-        priority: typeof body.priority === 'string' ? body.priority : 'normal',
+        priority: typeof body.priority === 'string' ? body.priority : 'medium',
         due_date: typeof body.due_date === 'string' ? body.due_date : null,
         created_by: accessResult.access.userId,
         metadata,

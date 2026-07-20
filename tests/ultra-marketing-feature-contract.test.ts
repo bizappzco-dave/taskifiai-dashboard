@@ -194,6 +194,7 @@ test('Ultra Marketing approval seeds build deterministic assistant and posting d
 
   assert.equal(postingSeed.client_id, 'client-1')
   assert.equal(postingSeed.status, 'pending_approval')
+  assert.equal(postingSeed.priority, 'medium')
   assert.equal(postingSeed.metadata.kind, ULTRA_MARKETING_APPROVAL_KIND)
   assert.equal(postingSeed.metadata.source, ULTRA_MARKETING_APPROVAL_SOURCES.postingDrafts)
   assert.equal(postingSeed.metadata.external_reference, 'post:post-123')
@@ -202,6 +203,7 @@ test('Ultra Marketing approval seeds build deterministic assistant and posting d
 
   const assistantSeeds = buildAssistantSuggestionApprovalTasks({ id: 'client-1', name: 'Example Motors' }, { createdBy: 'user-1', now })
   assert.equal(assistantSeeds.length, 3)
+  assert.ok(assistantSeeds.every((seed) => seed.priority === 'medium'))
   assert.equal(assistantSeeds[0].metadata.source, ULTRA_MARKETING_APPROVAL_SOURCES.assistantSuggestions)
   assert.ok(new Set(assistantSeeds.map((seed) => seed.metadata.external_reference)).has('assistant-suggestion:social_content_draft'))
   assert.ok(assistantSeeds.every((seed) => seed.metadata.external_action === 'approval_required_before_execution'))

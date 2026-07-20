@@ -188,7 +188,7 @@ export function buildPostingDraftApprovalTask(
     title: `Approve ${platform} post draft`,
     description: 'Review this SocialDrive/posting draft before it can be published.',
     status: 'pending_approval',
-    priority: 'normal',
+    priority: 'medium',
     due_date: null,
     created_by: options.createdBy || null,
     metadata: buildApprovalTaskMetadata({
@@ -221,7 +221,7 @@ export function buildAssistantSuggestionApprovalTasks(
   const common = {
     client_id: clientId,
     status: 'pending_approval' as const,
-    priority: 'normal',
+    priority: 'medium',
     due_date: null,
     created_by: options.createdBy || null,
     created_at: now,
