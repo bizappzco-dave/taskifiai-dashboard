@@ -9,6 +9,12 @@ import {
   ULTRA_MARKETING_APPROVAL_POLICY,
   ULTRA_MARKETING_WORKFLOWS,
 } from '@/lib/ultra-marketing'
+import {
+  approvalItemFromTask,
+  approvalSummary,
+  ULTRA_MARKETING_APPROVAL_KIND,
+  ULTRA_MARKETING_OPEN_APPROVAL_STATUSES,
+} from '@/lib/ultra-marketing-approvals'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,7 +106,7 @@ export async function GET(request: Request) {
       : ULTRA_MARKETING_WORKFLOWS
     const supabaseAdmin = getSupabaseAdmin() as any
 
-    const [activities, openLeadsResult, adAlertsResult, latestClientReportResult, latestAdReportResult] = await Promise.all([
+    const [activities, openLeadsResult, approvalTasksResult, latestClientReportResult, latestAdReportResult] = await Promise.all([
       getClientActivities(clientId, 8),
       supabaseAdmin
         .from('leads')
@@ -108,10 +114,13 @@ export async function GET(request: Request) {
         .eq('client_id', clientId)
         .in('status', openLeadStatuses),
       supabaseAdmin
-        .from('ad_alerts')
-        .select('id', { count: 'exact', head: true })
+        .from('tasks')
+        .select('id, client_id, title, description, status, priority, due_date, completed_at, metadata, created_at, updated_at', { count: 'exact' })
         .eq('client_id', clientId)
-        .eq('is_resolved', false),
+        .filter('metadata->>kind', 'eq', ULTRA_MARKETING_APPROVAL_KIND)
+        .in('status', ULTRA_MARKETING_OPEN_APPROVAL_STATUSES)
+        .order('created_at', { ascending: false })
+        .limit(5),
       supabaseAdmin
         .from('client_reports')
         .select('id, title, report_type, status, score, created_at')
@@ -130,6 +139,8 @@ export async function GET(request: Request) {
 
     const latestClientReport = latestClientReportResult.error ? null : latestClientReportResult.data
     const latestAdReport = latestAdReportResult.error ? null : latestAdReportResult.data
+    const approvals = approvalTasksResult.error ? [] : (approvalTasksResult.data || []).map(approvalItemFromTask)
+    const approvalsSummary = approvalSummary(approvals)
 
     return NextResponse.json({
       client: {
@@ -141,7 +152,7 @@ export async function GET(request: Request) {
       workspace: sanitizeWorkspace(workspace),
       summary: {
         open_leads: safeNumber(openLeadsResult.count),
-        pending_approvals: safeNumber(adAlertsResult.count),
+        pending_approvals: safeNumber(approvalTasksResult.count) || approvalsSummary.open,
         recent_activity: Array.isArray(activities) ? activities.length : 0,
         latest_report: latestClientReport
           ? {
@@ -171,6 +182,11 @@ export async function GET(request: Request) {
         'Changing ad spend or campaign settings requires explicit approval',
         'Connecting accounts or credentials requires attended admin approval',
       ],
+      approvals,
+      approvals_summary: {
+        ...approvalsSummary,
+        total_matching: approvalTasksResult.count || approvals.length,
+      },
       recent_activity: (activities || []).map((activity: any) => ({
         id: activity.id,
         title: activity.title || activity.activity_type || 'Activity',

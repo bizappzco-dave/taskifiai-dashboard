@@ -9,24 +9,36 @@ import {
   provisionUltraMarketingFeature,
   ULTRA_MARKETING_APPROVAL_POLICY,
 } from '../src/lib/ultra-marketing'
+import {
+  approvalItemFromTask,
+  approvalStatusForDecision,
+  buildApprovalTaskMetadata,
+  isOpenApprovalStatus,
+  ULTRA_MARKETING_APPROVAL_KIND,
+} from '../src/lib/ultra-marketing-approvals'
 
 const queriesPath = path.resolve('src/lib/queries.ts')
 const queriesSource = fs.readFileSync(queriesPath, 'utf8')
 const workspaceRouteSource = fs.readFileSync(path.resolve('src/app/api/client/ultra-marketing/workspace/route.ts'), 'utf8')
+const approvalsRouteSource = fs.readFileSync(path.resolve('src/app/api/client/ultra-marketing/approvals/route.ts'), 'utf8')
 const workspacePageSource = fs.readFileSync(path.resolve('src/app/client/ultra-marketing/page.tsx'), 'utf8')
 
-function functionBody(name: string): string {
+function exportedFunctionBody(source: string, name: string): string {
   const marker = `export async function ${name}`
-  const start = queriesSource.indexOf(marker)
+  const start = source.indexOf(marker)
   assert.notEqual(start, -1, `${name} must exist`)
 
-  const nextFunction = queriesSource.indexOf('\nexport async function ', start + marker.length)
-  return queriesSource.slice(start, nextFunction === -1 ? undefined : nextFunction)
+  const nextFunction = source.indexOf('\nexport async function ', start + marker.length)
+  return source.slice(start, nextFunction === -1 ? undefined : nextFunction)
+}
+
+function queryFunctionBody(name: string): string {
+  return exportedFunctionBody(queriesSource, name)
 }
 
 test('Ultra Marketing enable/disable persist explicit workspace feature states', () => {
-  const enableBody = functionBody('enableUltraMarketing')
-  const disableBody = functionBody('disableUltraMarketing')
+  const enableBody = queryFunctionBody('enableUltraMarketing')
+  const disableBody = queryFunctionBody('disableUltraMarketing')
 
   assert.match(enableBody, /provisionUltraMarketingFeature/, 'enableUltraMarketing must provision the workspace feature contract')
   assert.match(disableBody, /pauseUltraMarketingFeature/, 'disableUltraMarketing must pause the workspace feature contract')
@@ -84,14 +96,79 @@ test('Ultra Marketing pause preserves workspace identity and disables access fla
   assert.equal(isUltraMarketingEnabled({ ...client, features: { products: { ultra_marketing: paused } } }), false)
 })
 
+test('Ultra Marketing approval items use existing tasks as a safe decision queue', () => {
+  const metadata = buildApprovalTaskMetadata({
+    action_type: 'social_post',
+    channel: 'instagram',
+    summary: 'Approve a drafted post for Friday.',
+    draft_preview: 'New summer offer copy',
+    requested_action: 'Approve post',
+    source: 'assistant_workspace',
+    external_reference: 'draft-123',
+  })
+
+  assert.equal(metadata.kind, ULTRA_MARKETING_APPROVAL_KIND)
+  assert.equal(metadata.external_action, 'approval_required_before_execution')
+
+  const approval = approvalItemFromTask({
+    id: 'task-1',
+    client_id: 'client-1',
+    title: 'Friday post approval',
+    description: 'Check tone and offer.',
+    status: 'pending',
+    priority: 'high',
+    due_date: '2026-07-21T10:00:00.000Z',
+    metadata,
+    created_at: '2026-07-20T10:00:00.000Z',
+    updated_at: '2026-07-20T10:00:00.000Z',
+  })
+
+  assert.equal(approval.status, 'pending_approval')
+  assert.equal(approval.action_type, 'social_post')
+  assert.equal(approval.channel, 'instagram')
+  assert.equal(approval.draft_preview, 'New summer offer copy')
+  assert.equal(isOpenApprovalStatus(approval.status), true)
+  assert.equal(approvalStatusForDecision('approve'), 'approved')
+  assert.equal(approvalStatusForDecision('reject'), 'rejected')
+  assert.equal(approvalStatusForDecision('publish'), null)
+})
+
 test('Ultra Marketing workspace API is tenant-gated and client-safe', () => {
-  const guardIndex = workspaceRouteSource.indexOf('requireClientRouteAccess(request, clientId)')
-  const adminIndex = workspaceRouteSource.indexOf('getSupabaseAdmin()')
+  const getBody = exportedFunctionBody(workspaceRouteSource, 'GET')
+  const guardIndex = getBody.indexOf('requireClientRouteAccess(request, clientId)')
+  const adminIndex = getBody.indexOf('getSupabaseAdmin()')
 
   assert.match(workspaceRouteSource, /export const dynamic = 'force-dynamic'/)
   assert.notEqual(guardIndex, -1, 'workspace API must require route access')
-  assert.notEqual(adminIndex, -1, 'workspace API uses service role only after access guard')
-  assert.ok(guardIndex < adminIndex, 'workspace API must check client access before service-role reads')
+  assert.notEqual(adminIndex, -1, 'workspace API uses admin reads only after access guard')
+  assert.ok(guardIndex < adminIndex, 'workspace API must check client access before admin reads')
+  assert.match(workspaceRouteSource, /from\('tasks'\)/, 'workspace summary must read approval queue tasks')
+  assert.match(workspaceRouteSource, /metadata->>kind/, 'workspace summary must only count approval tasks')
   assert.doesNotMatch(workspaceRouteSource, /SUPABASE_SECRET_KEY|SERVICE_ROLE|HERMES|VPS/i)
   assert.doesNotMatch(workspacePageSource, /Hermes|VPS|service role|Supabase/i, 'client workspace page must hide backend mechanics')
+})
+
+test('Ultra Marketing approvals API guards access and records decisions without external execution', () => {
+  const getBody = exportedFunctionBody(approvalsRouteSource, 'GET')
+  const postBody = exportedFunctionBody(approvalsRouteSource, 'POST')
+  const patchBody = exportedFunctionBody(approvalsRouteSource, 'PATCH')
+
+  assert.match(approvalsRouteSource, /export const dynamic = 'force-dynamic'/)
+  assert.ok(getBody.indexOf('requireUltraMarketingAccess(request, clientId)') < getBody.indexOf('getSupabaseAdmin()'))
+  assert.match(postBody, /requireUltraMarketingAccess\(request, clientId, 'editor'\)/)
+  assert.match(patchBody, /requireUltraMarketingAccess\(request, clientId, 'editor'\)/)
+  assert.match(approvalsRouteSource, /eq\('client_id', clientId\)/, 'approval items must stay client-scoped')
+  assert.match(approvalsRouteSource, /metadata->>kind/, 'approval API must only read approval queue tasks')
+  assert.match(approvalsRouteSource, /decisions_execute_external_actions: false/)
+  assert.match(approvalsRouteSource, /external_action_executed: false/)
+  assert.match(approvalsRouteSource, /not_executed_by_queue/)
+  assert.doesNotMatch(approvalsRouteSource, /Ollama|ChatGPT|OpenAI|Hermes|VPS|service role|SUPABASE_SECRET_KEY/i)
+})
+
+test('Ultra Marketing workspace page exposes approval review UI without backend mechanics', () => {
+  assert.match(workspacePageSource, /\/api\/client\/ultra-marketing\/approvals/)
+  assert.match(workspacePageSource, /method: 'PATCH'/)
+  assert.match(workspacePageSource, /Approval queue/)
+  assert.match(workspacePageSource, /No external publishing or sending happened from this queue/)
+  assert.doesNotMatch(workspacePageSource, /Ollama|ChatGPT|OpenAI|Hermes|VPS|service role|Supabase/i)
 })

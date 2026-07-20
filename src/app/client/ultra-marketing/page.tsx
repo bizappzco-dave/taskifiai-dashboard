@@ -22,6 +22,24 @@ type WorkspaceActivity = {
   created_at?: string | null;
 };
 
+type ApprovalQueueItem = {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  priority?: string | null;
+  due_date?: string | null;
+  action_type: string;
+  channel?: string | null;
+  summary?: string | null;
+  draft_preview?: string | null;
+  requested_action?: string | null;
+  source?: string | null;
+  review_note?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 type WorkspacePayload = {
   client: {
     id: string;
@@ -55,6 +73,17 @@ type WorkspacePayload = {
   };
   modules: WorkspaceModule[];
   approval_defaults: string[];
+  approvals: ApprovalQueueItem[];
+  approvals_summary?: {
+    total: number;
+    open: number;
+    draft: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    published: number;
+    total_matching: number;
+  };
   recent_activity: WorkspaceActivity[];
 };
 
@@ -66,6 +95,16 @@ function statusLabel(value?: string | null) {
   return value ? value.replace(/_/g, ' ') : 'ready';
 }
 
+function workflowLabel(value?: string | null) {
+  return value ? value.replace(/_/g, ' ') : 'Marketing action';
+}
+
+function approvalBadgeClass(status: string) {
+  if (status === 'approved') return 'taskifi-connection-badge live';
+  if (status === 'rejected') return 'taskifi-connection-badge';
+  return 'taskifi-connection-badge planned';
+}
+
 export default function UltraMarketingWorkspacePage() {
   const router = useRouter();
   const [clients, setClients] = useState<DashboardClient[]>([]);
@@ -74,7 +113,9 @@ export default function UltraMarketingWorkspacePage() {
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [panelLoading, setPanelLoading] = useState(false);
+  const [decisionLoading, setDecisionLoading] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     loadWorkspaceHome();
@@ -124,8 +165,40 @@ export default function UltraMarketingWorkspacePage() {
     }
   }
 
+  async function reviewApproval(approvalId: string, decision: 'approve' | 'reject') {
+    if (!workspaceData) return;
+
+    setDecisionLoading(`${decision}:${approvalId}`);
+    setWarnings([]);
+    setNotice('');
+
+    try {
+      const res = await fetchWithDashboardAuth('/api/client/ultra-marketing/approvals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: workspaceData.client.id,
+          approval_id: approvalId,
+          decision,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval item could not be updated');
+
+      await loadWorkspace(workspaceData.client.id);
+      setNotice(decision === 'approve'
+        ? 'Approval recorded. No external publishing or sending happened from this queue.'
+        : 'Rejection recorded. The draft will not be executed.');
+    } catch (err: any) {
+      setWarnings([err.message || 'Approval item could not be updated.']);
+    } finally {
+      setDecisionLoading(null);
+    }
+  }
+
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
   const latestReport = workspaceData?.summary.latest_report || null;
+  const approvalCount = workspaceData?.approvals_summary?.total_matching ?? workspaceData?.summary.pending_approvals ?? 0;
 
   if (loading) {
     return <main className="taskifi-dashboard taskifi-loading-screen"><div className="taskifi-loading-card"><div className="taskifi-spinner" /><p className="taskifi-eyebrow">Ultra Marketing</p><h1>Loading assistant workspace</h1><p>Checking your client access and enabled products.</p></div></main>;
@@ -153,6 +226,7 @@ export default function UltraMarketingWorkspacePage() {
         </section>
 
         {warnings.length > 0 && <section className="taskifi-alert" role="status"><strong>Assistant note:</strong> {warnings.join(' • ')}</section>}
+        {notice && <section className="taskifi-alert taskifi-alert-success" role="status"><strong>Approval queue:</strong> {notice}</section>}
 
         {clients.length === 0 ? (
           <section className="taskifi-empty-state taskifi-empty-wide">
@@ -184,9 +258,48 @@ export default function UltraMarketingWorkspacePage() {
                 <div className="taskifi-source-grid taskifi-report-mini-grid">
                   <div className="taskifi-source-card"><strong>{workspaceData.modules.length}</strong><span>Assistant workflows</span></div>
                   <div className="taskifi-source-card"><strong>{formatDate(workspaceData.workspace.provisioned_at)}</strong><span>Provisioned</span></div>
-                  <div className="taskifi-source-card"><strong>Approval</strong><span>External actions</span></div>
+                  <div className="taskifi-source-card"><strong>{approvalCount}</strong><span>Approval queue</span></div>
                   <div className="taskifi-source-card"><strong>Secure</strong><span>Client-scoped access</span></div>
                 </div>
+              </article>
+
+              <article className="taskifi-module-card taskifi-span-2">
+                <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Approval queue</p><h2>Review before anything goes live</h2></div><span className="taskifi-soft-badge">{approvalCount} pending</span></div>
+                <p className="taskifi-muted-note">Approving an item records your decision only. Publishing, sending, review replies and budget-changing work still run through the connected workflow after approval.</p>
+                {workspaceData.approvals.length === 0 ? (
+                  <div className="taskifi-inner-empty"><h3>No approvals waiting</h3><p>Draft posts, email campaigns, review replies and ad recommendations will appear here before they can be actioned.</p></div>
+                ) : (
+                  <div className="taskifi-list-stack">
+                    {workspaceData.approvals.map((approval) => (
+                      <article key={approval.id} className="taskifi-approval-card">
+                        <div className="taskifi-approval-main">
+                          <div className="taskifi-approval-title-row">
+                            <div>
+                              <p className="taskifi-eyebrow">{workflowLabel(approval.action_type)}{approval.channel ? ` • ${approval.channel}` : ''}</p>
+                              <h3>{approval.title}</h3>
+                            </div>
+                            <span className={approvalBadgeClass(approval.status)}>{statusLabel(approval.status)}</span>
+                          </div>
+                          {(approval.description || approval.summary) && <p>{approval.description || approval.summary}</p>}
+                          {approval.draft_preview && <blockquote>{approval.draft_preview}</blockquote>}
+                          <div className="taskifi-approval-meta">
+                            <span>{approval.priority || 'normal'} priority</span>
+                            <span>Due {formatDate(approval.due_date)}</span>
+                            {approval.requested_action && <span>{approval.requested_action}</span>}
+                          </div>
+                        </div>
+                        <div className="taskifi-feature-actions left taskifi-approval-actions">
+                          <button onClick={() => reviewApproval(approval.id, 'approve')} disabled={Boolean(decisionLoading)} className="taskifi-button taskifi-button-primary">
+                            {decisionLoading === `approve:${approval.id}` ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button onClick={() => reviewApproval(approval.id, 'reject')} disabled={Boolean(decisionLoading)} className="taskifi-button taskifi-button-secondary">
+                            {decisionLoading === `reject:${approval.id}` ? 'Rejecting...' : 'Reject'}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </article>
 
               <article className="taskifi-module-card">
@@ -214,7 +327,7 @@ export default function UltraMarketingWorkspacePage() {
                   <Link href={`/client/reports?client_id=${workspaceData.client.id}`}>Review latest reports</Link>
                   <Link href={`/client/posting?client_id=${workspaceData.client.id}`}>Prepare a social post</Link>
                   <Link href={`/client?client_id=${workspaceData.client.id}`}>Check leads and activity</Link>
-                  <span>Approval queue coming next</span>
+                  <span>Approved items remain gated until the connected workflow runs</span>
                 </div>
               </article>
 

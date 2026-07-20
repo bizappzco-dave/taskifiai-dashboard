@@ -657,6 +657,16 @@ tbody tr {
 .taskifi-report-recommendations { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
 .taskifi-report-recommendations li { display: flex; gap: 8px; color: var(--tf-muted); font-size: 13px; line-height: 1.45; }
 .taskifi-report-recommendations li::before { content: '•'; color: var(--tf-primary); font-weight: 950; }
+.taskifi-alert-success { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+.taskifi-approval-card { display: grid; gap: 14px; padding: 18px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 22px; background: linear-gradient(135deg, #fff, #fbfcff); }
+.taskifi-approval-main { display: grid; gap: 10px; }
+.taskifi-approval-title-row { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.taskifi-approval-title-row h3 { margin: 4px 0 0; color: var(--tf-ink); font-size: 17px; letter-spacing: -.02em; }
+.taskifi-approval-card p { margin: 0; color: var(--tf-muted); font-size: 14px; line-height: 1.55; }
+.taskifi-approval-card blockquote { margin: 0; padding: 14px 16px; border-left: 4px solid var(--tf-primary); border-radius: 14px; background: #f8fafc; color: var(--tf-ink); font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+.taskifi-approval-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.taskifi-approval-meta span { border-radius: 999px; padding: 6px 10px; background: #f1f5f9; color: var(--tf-muted); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.taskifi-approval-actions { margin-top: 2px; }
 @media (max-width: 900px) {
   .taskifi-client-home-grid,
   .taskifi-client-reports-grid,
@@ -668,6 +678,7 @@ tbody tr {
   .taskifi-report-card-grid { grid-template-columns: 1fr; }
   .taskifi-report-autoload-grid,
   .taskifi-report-metric-strip { grid-template-columns: 1fr; }
+  .taskifi-approval-title-row { flex-direction: column; align-items: flex-start; }
   .taskifi-post-row { grid-template-columns: 1fr; }
   .taskifi-post-row img,
   .taskifi-post-placeholder { width: 100%; height: 180px; }
