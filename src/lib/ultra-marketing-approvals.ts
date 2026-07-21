@@ -32,6 +32,9 @@ export type UltraMarketingApprovalItem = {
   requested_action: string | null
   source: string | null
   external_reference: string | null
+  source_table: string | null
+  original_status: string | null
+  image_count: number | null
   review_note: string | null
   reviewed_at: string | null
   created_at: string | null
@@ -67,6 +70,10 @@ function limitedText(value: unknown, limit = 700): string | null {
   const text = textOrNull(value)
   if (!text) return null
   return text.length > limit ? `${text.slice(0, limit - 1)}…` : text
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export function normalizeApprovalStatus(status: unknown): ApprovalStatus {
@@ -107,6 +114,9 @@ export function approvalItemFromTask(task: any): UltraMarketingApprovalItem {
     requested_action: textOrNull(metadata.requested_action || metadata.action_label || metadata.action),
     source: textOrNull(metadata.source || metadata.source_system),
     external_reference: textOrNull(metadata.external_reference || metadata.external_id || metadata.reference_id),
+    source_table: textOrNull(metadata.source_table),
+    original_status: textOrNull(metadata.original_status),
+    image_count: numberOrNull(metadata.image_count),
     review_note: textOrNull(metadata.review_note),
     reviewed_at: task?.completed_at ? String(task.completed_at) : textOrNull(metadata.reviewed_at),
     created_at: task?.created_at ? String(task.created_at) : null,

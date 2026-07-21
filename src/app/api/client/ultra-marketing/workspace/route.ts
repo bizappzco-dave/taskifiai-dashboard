@@ -106,7 +106,7 @@ export async function GET(request: Request) {
       : ULTRA_MARKETING_WORKFLOWS
     const supabaseAdmin = getSupabaseAdmin() as any
 
-    const [activities, openLeadsResult, approvalTasksResult, latestClientReportResult, latestAdReportResult] = await Promise.all([
+    const [activities, openLeadsResult, approvalTasksResult, approvalHistoryResult, latestClientReportResult, latestAdReportResult] = await Promise.all([
       getClientActivities(clientId, 8),
       supabaseAdmin
         .from('leads')
@@ -121,6 +121,13 @@ export async function GET(request: Request) {
         .in('status', ULTRA_MARKETING_OPEN_APPROVAL_STATUSES)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabaseAdmin
+        .from('tasks')
+        .select('id, client_id, title, description, status, priority, due_date, completed_at, metadata, created_at, updated_at')
+        .eq('client_id', clientId)
+        .filter('metadata->>kind', 'eq', ULTRA_MARKETING_APPROVAL_KIND)
+        .order('updated_at', { ascending: false })
+        .limit(12),
       supabaseAdmin
         .from('client_reports')
         .select('id, title, report_type, status, score, created_at')
@@ -140,6 +147,7 @@ export async function GET(request: Request) {
     const latestClientReport = latestClientReportResult.error ? null : latestClientReportResult.data
     const latestAdReport = latestAdReportResult.error ? null : latestAdReportResult.data
     const approvals = approvalTasksResult.error ? [] : (approvalTasksResult.data || []).map(approvalItemFromTask)
+    const approvalHistory = approvalHistoryResult.error ? [] : (approvalHistoryResult.data || []).map(approvalItemFromTask)
     const approvalsSummary = approvalSummary(approvals)
 
     return NextResponse.json({
@@ -183,6 +191,7 @@ export async function GET(request: Request) {
         'Connecting accounts or credentials requires attended admin approval',
       ],
       approvals,
+      approval_history: approvalHistory,
       approvals_summary: {
         ...approvalsSummary,
         total_matching: approvalTasksResult.count || approvals.length,

@@ -35,7 +35,12 @@ type ApprovalQueueItem = {
   draft_preview?: string | null;
   requested_action?: string | null;
   source?: string | null;
+  external_reference?: string | null;
+  source_table?: string | null;
+  original_status?: string | null;
+  image_count?: number | null;
   review_note?: string | null;
+  reviewed_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -74,6 +79,7 @@ type WorkspacePayload = {
   modules: WorkspaceModule[];
   approval_defaults: string[];
   approvals: ApprovalQueueItem[];
+  approval_history: ApprovalQueueItem[];
   approvals_summary?: {
     total: number;
     open: number;
@@ -97,6 +103,17 @@ function statusLabel(value?: string | null) {
 
 function workflowLabel(value?: string | null) {
   return value ? value.replace(/_/g, ' ') : 'Marketing action';
+}
+
+function sourceLabel(value?: string | null) {
+  if (!value) return 'Assistant workspace';
+  if (value === 'taskifiai_posting_drafts') return 'Posting draft';
+  if (value === 'ultra_marketing_assistant_suggestions') return 'Assistant suggestion';
+  return value.replace(/_/g, ' ');
+}
+
+function historyTimestamp(item: ApprovalQueueItem) {
+  return item.reviewed_at || item.updated_at || item.created_at || null;
 }
 
 function approvalBadgeClass(status: string) {
@@ -328,8 +345,14 @@ export default function UltraMarketingWorkspacePage() {
                           <div className="taskifi-approval-meta">
                             <span>{approval.priority || 'normal'} priority</span>
                             <span>Due {formatDate(approval.due_date)}</span>
+                            <span>{sourceLabel(approval.source)}</span>
                             {approval.requested_action && <span>{approval.requested_action}</span>}
+                            {approval.channel && <span>{approval.channel}</span>}
+                            {approval.original_status && <span>Was {statusLabel(approval.original_status)}</span>}
+                            {typeof approval.image_count === 'number' && <span>{approval.image_count} image{approval.image_count === 1 ? '' : 's'}</span>}
+                            {approval.external_reference && <span>{approval.external_reference}</span>}
                           </div>
+                          {approval.review_note && <p><strong>Review note:</strong> {approval.review_note}</p>}
                         </div>
                         <div className="taskifi-feature-actions left taskifi-approval-actions">
                           <button onClick={() => reviewApproval(approval.id, 'approve')} disabled={Boolean(decisionLoading)} className="taskifi-button taskifi-button-primary">
@@ -355,6 +378,26 @@ export default function UltraMarketingWorkspacePage() {
                     </article>
                   ))}
                 </div>
+              </article>
+
+              <article className="taskifi-module-card">
+                <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Activity / Draft history</p><h2>What is waiting, approved or rejected</h2></div><span className="taskifi-soft-badge">{workspaceData.approval_history.length} items</span></div>
+                {workspaceData.approval_history.length === 0 ? <div className="taskifi-inner-empty"><h3>No approval history yet</h3><p>Assistant suggestions, imported drafts and review decisions will appear here as the workspace gets used.</p></div> : (
+                  <div className="taskifi-list-stack">
+                    {workspaceData.approval_history.map((item) => (
+                      <article key={item.id} className="taskifi-activity-row-lite">
+                        <span className="taskifi-activity-dot" />
+                        <div>
+                          <h3>{item.title}</h3>
+                          <p>{workflowLabel(item.action_type)} • {sourceLabel(item.source)}{item.channel ? ` • ${item.channel}` : ''}</p>
+                          {item.review_note && <p>Review note: {item.review_note}</p>}
+                        </div>
+                        <span className={approvalBadgeClass(item.status)}>{statusLabel(item.status)}</span>
+                        <small>{formatDate(historyTimestamp(item))}</small>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </article>
 
               <article className="taskifi-module-card">
