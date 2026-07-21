@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ClientNav from '@/components/ClientNav';
@@ -116,6 +116,39 @@ function historyTimestamp(item: ApprovalQueueItem) {
   return item.reviewed_at || item.updated_at || item.created_at || null;
 }
 
+function actionTypeLabel(value?: string | null) {
+  switch (value) {
+    case 'social_post': return 'Social post';
+    case 'review_reply': return 'Review reply';
+    case 'email_campaign': return 'Email campaign';
+    case 'ad_recommendation': return 'Ad recommendation';
+    case 'local_visibility_update': return 'Local visibility';
+    default: return workflowLabel(value);
+  }
+}
+
+function actionTypeIcon(value?: string | null) {
+  switch (value) {
+    case 'social_post': return '✍️';
+    case 'review_reply': return '⭐';
+    case 'email_campaign': return '✉️';
+    case 'ad_recommendation': return '📈';
+    case 'local_visibility_update': return '📍';
+    default: return '🧠';
+  }
+}
+
+function actionTypeTone(value?: string | null) {
+  switch (value) {
+    case 'social_post': return 'social';
+    case 'review_reply': return 'review';
+    case 'email_campaign': return 'email';
+    case 'ad_recommendation': return 'ads';
+    case 'local_visibility_update': return 'local';
+    default: return 'default';
+  }
+}
+
 function approvalBadgeClass(status: string) {
   if (status === 'approved') return 'taskifi-connection-badge live';
   if (status === 'rejected') return 'taskifi-connection-badge';
@@ -134,6 +167,8 @@ export default function UltraMarketingWorkspacePage() {
   const [seedLoading, setSeedLoading] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [notice, setNotice] = useState('');
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [historySearch, setHistorySearch] = useState('');
 
   useEffect(() => {
     loadWorkspaceHome();
@@ -248,6 +283,30 @@ export default function UltraMarketingWorkspacePage() {
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
   const latestReport = workspaceData?.summary.latest_report || null;
   const approvalCount = workspaceData?.approvals_summary?.total_matching ?? workspaceData?.summary.pending_approvals ?? 0;
+  const filteredHistory = useMemo(() => {
+    if (!workspaceData) return [];
+    const query = historySearch.trim().toLowerCase();
+    return workspaceData.approval_history.filter((item) => {
+      const matchesFilter = historyFilter === 'all'
+        || item.status === historyFilter
+        || item.action_type === historyFilter
+        || item.source === historyFilter;
+      if (!matchesFilter) return false;
+      if (!query) return true;
+      const haystack = [
+        item.title,
+        item.description,
+        item.summary,
+        item.draft_preview,
+        item.review_note,
+        item.source,
+        item.external_reference,
+        item.channel,
+        item.action_type,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [workspaceData, historyFilter, historySearch]);
 
   if (loading) {
     return <main className="taskifi-dashboard taskifi-loading-screen"><div className="taskifi-loading-card"><div className="taskifi-spinner" /><p className="taskifi-eyebrow">Ultra Marketing</p><h1>Loading assistant workspace</h1><p>Checking your client access and enabled products.</p></div></main>;
@@ -331,11 +390,11 @@ export default function UltraMarketingWorkspacePage() {
                 ) : (
                   <div className="taskifi-list-stack">
                     {workspaceData.approvals.map((approval) => (
-                      <article key={approval.id} className="taskifi-approval-card">
+                      <article key={approval.id} className={`taskifi-approval-card taskifi-approval-card-${actionTypeTone(approval.action_type)}`}>
                         <div className="taskifi-approval-main">
                           <div className="taskifi-approval-title-row">
                             <div>
-                              <p className="taskifi-eyebrow">{workflowLabel(approval.action_type)}{approval.channel ? ` • ${approval.channel}` : ''}</p>
+                              <p className="taskifi-eyebrow">{actionTypeIcon(approval.action_type)} {actionTypeLabel(approval.action_type)}{approval.channel ? ` • ${approval.channel}` : ''}</p>
                               <h3>{approval.title}</h3>
                             </div>
                             <span className={approvalBadgeClass(approval.status)}>{statusLabel(approval.status)}</span>
@@ -381,15 +440,44 @@ export default function UltraMarketingWorkspacePage() {
               </article>
 
               <article className="taskifi-module-card">
-                <div className="taskifi-module-header"><div><p className="taskifi-eyebrow">Activity / Draft history</p><h2>What is waiting, approved or rejected</h2></div><span className="taskifi-soft-badge">{workspaceData.approval_history.length} items</span></div>
-                {workspaceData.approval_history.length === 0 ? <div className="taskifi-inner-empty"><h3>No approval history yet</h3><p>Assistant suggestions, imported drafts and review decisions will appear here as the workspace gets used.</p></div> : (
+                <div className="taskifi-module-header taskifi-module-header-wrap"><div><p className="taskifi-eyebrow">Activity / Draft history</p><h2>What is waiting, approved or rejected</h2></div><span className="taskifi-soft-badge">{filteredHistory.length} of {workspaceData.approval_history.length} items</span></div>
+                <div className="taskifi-history-toolbar">
+                  <input
+                    type="search"
+                    value={historySearch}
+                    onChange={(event) => setHistorySearch(event.target.value)}
+                    placeholder="Search title, note, source or reference"
+                    className="taskifi-feature-select taskifi-search-input"
+                    aria-label="Search approval history"
+                  />
+                  <select value={historyFilter} onChange={(event) => setHistoryFilter(event.target.value)} className="taskifi-feature-select" aria-label="Filter approval history">
+                    <option value="all">All items</option>
+                    <option value="pending_approval">Pending approval</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="social_post">Social posts</option>
+                    <option value="review_reply">Review replies</option>
+                    <option value="email_campaign">Email campaigns</option>
+                    <option value="ad_recommendation">Ad recommendations</option>
+                    <option value="local_visibility_update">Local visibility</option>
+                    <option value="taskifiai_posting_drafts">Posting drafts</option>
+                    <option value="ultra_marketing_assistant_suggestions">Assistant suggestions</option>
+                  </select>
+                </div>
+                {workspaceData.approval_history.length === 0 ? <div className="taskifi-inner-empty"><h3>No approval history yet</h3><p>Assistant suggestions, imported drafts and review decisions will appear here as the workspace gets used.</p></div> : filteredHistory.length === 0 ? <div className="taskifi-inner-empty"><h3>No history matches</h3><p>Try a broader search or switch the filter back to all items.</p></div> : (
                   <div className="taskifi-list-stack">
-                    {workspaceData.approval_history.map((item) => (
-                      <article key={item.id} className="taskifi-activity-row-lite">
+                    {filteredHistory.map((item) => (
+                      <article key={item.id} className={`taskifi-activity-row-lite taskifi-history-card taskifi-history-card-${actionTypeTone(item.action_type)}`}>
                         <span className="taskifi-activity-dot" />
                         <div>
                           <h3>{item.title}</h3>
-                          <p>{workflowLabel(item.action_type)} • {sourceLabel(item.source)}{item.channel ? ` • ${item.channel}` : ''}</p>
+                          <p>{actionTypeIcon(item.action_type)} {actionTypeLabel(item.action_type)} • {sourceLabel(item.source)}{item.channel ? ` • ${item.channel}` : ''}</p>
+                          <div className="taskifi-approval-meta">
+                            <span>{statusLabel(item.status)}</span>
+                            {item.external_reference && <span>{item.external_reference}</span>}
+                            {item.original_status && <span>Was {statusLabel(item.original_status)}</span>}
+                            {typeof item.image_count === 'number' && <span>{item.image_count} image{item.image_count === 1 ? '' : 's'}</span>}
+                          </div>
                           {item.review_note && <p>Review note: {item.review_note}</p>}
                         </div>
                         <span className={approvalBadgeClass(item.status)}>{statusLabel(item.status)}</span>
