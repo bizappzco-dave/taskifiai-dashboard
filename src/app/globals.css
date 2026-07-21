@@ -672,9 +672,11 @@ tbody tr {
 .taskifi-history-card { align-items: flex-start; }
 .taskifi-history-card .taskifi-approval-meta { margin-top: 8px; }
 .taskifi-approval-card-social, .taskifi-history-card-social { border-color: rgba(219, 39, 119, .18); background: linear-gradient(135deg, #fff, #fdf2f8); }
+.taskifi-approval-card-content, .taskifi-history-card-content { border-color: rgba(236, 72, 153, .2); background: linear-gradient(135deg, #fff, #fdf4ff); }
 .taskifi-approval-card-review, .taskifi-history-card-review { border-color: rgba(245, 158, 11, .22); background: linear-gradient(135deg, #fff, #fffbeb); }
 .taskifi-approval-card-email, .taskifi-history-card-email { border-color: rgba(59, 130, 246, .18); background: linear-gradient(135deg, #fff, #eff6ff); }
 .taskifi-approval-card-ads, .taskifi-history-card-ads { border-color: rgba(16, 185, 129, .18); background: linear-gradient(135deg, #fff, #ecfdf5); }
+.taskifi-approval-card-lead, .taskifi-history-card-lead { border-color: rgba(14, 165, 233, .2); background: linear-gradient(135deg, #fff, #f0f9ff); }
 .taskifi-approval-card-local, .taskifi-history-card-local { border-color: rgba(139, 92, 246, .18); background: linear-gradient(135deg, #fff, #f5f3ff); }
 @media (max-width: 900px) {
   .taskifi-client-home-grid,

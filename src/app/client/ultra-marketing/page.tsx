@@ -119,9 +119,11 @@ function historyTimestamp(item: ApprovalQueueItem) {
 function actionTypeLabel(value?: string | null) {
   switch (value) {
     case 'social_post': return 'Social post';
+    case 'social_content_draft': return 'Social content draft';
     case 'review_reply': return 'Review reply';
     case 'email_campaign': return 'Email campaign';
     case 'ad_recommendation': return 'Ad recommendation';
+    case 'lead_follow_up_draft': return 'Lead follow-up draft';
     case 'local_visibility_update': return 'Local visibility';
     default: return workflowLabel(value);
   }
@@ -130,9 +132,11 @@ function actionTypeLabel(value?: string | null) {
 function actionTypeIcon(value?: string | null) {
   switch (value) {
     case 'social_post': return '✍️';
+    case 'social_content_draft': return '🗂️';
     case 'review_reply': return '⭐';
     case 'email_campaign': return '✉️';
     case 'ad_recommendation': return '📈';
+    case 'lead_follow_up_draft': return '📞';
     case 'local_visibility_update': return '📍';
     default: return '🧠';
   }
@@ -141,9 +145,11 @@ function actionTypeIcon(value?: string | null) {
 function actionTypeTone(value?: string | null) {
   switch (value) {
     case 'social_post': return 'social';
+    case 'social_content_draft': return 'content';
     case 'review_reply': return 'review';
     case 'email_campaign': return 'email';
     case 'ad_recommendation': return 'ads';
+    case 'lead_follow_up_draft': return 'lead';
     case 'local_visibility_update': return 'local';
     default: return 'default';
   }
@@ -456,9 +462,11 @@ export default function UltraMarketingWorkspacePage() {
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                     <option value="social_post">Social posts</option>
+                    <option value="social_content_draft">Social content drafts</option>
                     <option value="review_reply">Review replies</option>
                     <option value="email_campaign">Email campaigns</option>
                     <option value="ad_recommendation">Ad recommendations</option>
+                    <option value="lead_follow_up_draft">Lead follow-up drafts</option>
                     <option value="local_visibility_update">Local visibility</option>
                     <option value="taskifiai_posting_drafts">Posting drafts</option>
                     <option value="ultra_marketing_assistant_suggestions">Assistant suggestions</option>
