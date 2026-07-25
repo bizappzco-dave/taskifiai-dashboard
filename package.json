@@ -5,7 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "totalsitedata:contract:test": "npx --yes tsx --test tests/totalsitedata-promotion-contract.test.ts",
+    "totalsitedata:smoke:promote": "bash scripts/smoke-totalsitedata-promotion.sh",
+    "totalsitedata:smoke:scan": "bash scripts/smoke-totalsitedata-scan.sh",
+    "totalsitedata:smoke": "npm run totalsitedata:preflight && npm run totalsitedata:smoke:promote && npm run totalsitedata:smoke:scan",
+    "totalsitedata:preflight": "bash scripts/totalsitedata-verify-preflight.sh",
+    "totalsitedata:scan:cli": "bash scripts/website-checker-scan-and-post.sh",
+    "totalsitedata:verify": "npm run totalsitedata:preflight && npm run totalsitedata:contract:test && TOTALSITEDATA_SKIP_PREFLIGHT=1 npm run totalsitedata:smoke",
+    "totalsitedata:ci": "bash scripts/totalsitedata-ci-checks.sh",
+    "totalsitedata:ci:local": "TOTALSITEDATA_CI_SKIP_VERIFY=1 bash scripts/totalsitedata-ci-checks.sh",
+    "totalsitedata:ci:strict": "TOTALSITEDATA_CI_VERIFY=1 bash scripts/totalsitedata-ci-checks.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

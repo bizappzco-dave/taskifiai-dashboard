@@ -8,8 +8,8 @@ export default function SocialLitesPage() {
       {/* Header */}
       <header className="border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-semibold text-gray-900">
-            TaskifiAI
+          <Link href="/" className="inline-flex items-center" aria-label="TaskifiAI dashboard home">
+            <img src="/taskifi-logo.svg" alt="TaskifiAI" className="h-10 w-auto" />
           </Link>
           <Link href="/" className="text-indigo-600 hover:text-indigo-800">
             ← Back to Dashboard

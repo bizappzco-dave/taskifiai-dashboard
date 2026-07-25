@@ -20,28 +20,18 @@ export default function SignInPage() {
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-
+        const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-
-        setMessage('✅ Account created! Please check your email to confirm your account.')
+        setMessage('✅ Account created. Please check your email to confirm your account.')
         setEmail('')
         setPassword('')
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-
-        setMessage('✅ Signed in successfully! Redirecting...')
+        setMessage('✅ Signed in successfully. Redirecting...')
         setTimeout(() => {
           window.location.href = '/'
-        }, 1500)
+        }, 900)
       }
     } catch (error: any) {
       setMessage(`❌ ${error.message}`)
@@ -61,10 +51,8 @@ export default function SignInPage() {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`,
       })
-
       if (error) throw error
-
-      setMessage('✅ Password reset email sent! Check your inbox.')
+      setMessage('✅ Password reset email sent. Check your inbox.')
       setShowReset(false)
       setEmail('')
     } catch (error: any) {
@@ -74,157 +62,87 @@ export default function SignInPage() {
     }
   }
 
-  if (showReset) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Reset Password
-            </h1>
-            <p className="text-gray-600">
-              Enter your email to receive a password reset link
-            </p>
-          </div>
-
-          {message && (
-            <div className={`mb-6 p-4 rounded-lg ${message.startsWith('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setShowReset(false)
-                setMessage('')
-              }}
-              className="text-indigo-600 hover:text-indigo-700 font-medium"
-            >
-              ← Back to Sign In
-            </button>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <a href="/" className="text-center block text-sm text-gray-500 hover:text-gray-700">
-              ← Back to Home
-            </a>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
-          </h1>
-          <p className="text-gray-600">
-            {isSignUp ? 'Sign up to access SocialDrive AI' : 'Sign in to your account'}
-          </p>
+    <main className="taskifi-auth-page">
+      <section className="taskifi-auth-brand-panel">
+        <a href="https://taskifi-demos.vercel.app/taskifiai/" className="taskifi-brand taskifi-auth-logo" aria-label="TaskifiAI homepage">
+          <img src="/taskifi-logo.svg" alt="TaskifiAI" className="taskifi-brand-logo" />
+          <span className="taskifi-brand-subtitle">
+            <small>Local growth systems</small>
+          </span>
+        </a>
+        <p className="taskifi-pill"><span /> One dashboard. Every platform. Connected.</p>
+        <h1>{showReset ? 'Reset access to your workspace.' : 'Welcome to your TaskifiAI dashboard.'}</h1>
+        <p>
+          Sign in to manage clients, SocialDrive AI links, review workflows, ad reports and lead capture from one clean workspace.
+        </p>
+        <div className="taskifi-auth-proof-grid">
+          <span>Google Business</span>
+          <span>SocialDrive AI</span>
+          <span>Reviews</span>
+          <span>Lead Pipeline</span>
         </div>
+      </section>
+
+      <section className="taskifi-auth-card" aria-label={showReset ? 'Reset password' : 'Sign in'}>
+        <p className="taskifi-eyebrow">Dashboard access</p>
+        <h2>{showReset ? 'Reset password' : isSignUp ? 'Create account' : 'Sign in'}</h2>
+        <p className="taskifi-auth-subtitle">
+          {showReset
+            ? 'Enter your email and we will send a secure reset link.'
+            : isSignUp
+              ? 'Create an account to access TaskifiAI tools.'
+              : 'Use your TaskifiAI account details to continue.'}
+        </p>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${message.startsWith('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <div className={message.startsWith('✅') ? 'taskifi-message success' : 'taskifi-message error'}>
             {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
+        {showReset ? (
+          <form onSubmit={handleResetPassword} className="taskifi-auth-form">
+            <label>
+              <span>Email address</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+            <button type="submit" disabled={loading} className="taskifi-button taskifi-button-primary taskifi-button-full">
+              {loading ? 'Sending...' : 'Send reset link'}
+            </button>
+            <button type="button" onClick={() => { setShowReset(false); setMessage('') }} className="taskifi-auth-link">
+              ← Back to sign in
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="taskifi-auth-form">
+            <label>
+              <span>Email address</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+            <label>
+              <span>Password</span>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
+            </label>
             {!isSignUp && (
-              <div className="mt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowReset(true)}
-                  className="text-sm text-indigo-600 hover:text-indigo-700"
-                >
-                  Forgot password?
-                </button>
-              </div>
+              <button type="button" onClick={() => setShowReset(true)} className="taskifi-auth-link taskifi-auth-link-left">
+                Forgot password?
+              </button>
             )}
-          </div>
+            <button type="submit" disabled={loading} className="taskifi-button taskifi-button-primary taskifi-button-full">
+              {loading ? 'Please wait...' : isSignUp ? 'Create account' : 'Sign in'}
+            </button>
+          </form>
+        )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+        {!showReset && (
+          <button onClick={() => { setIsSignUp(!isSignUp); setMessage('') }} className="taskifi-auth-toggle">
+            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
           </button>
-        </form>
+        )}
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp)
-              setMessage('')
-            }}
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
-          >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-          </button>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <a href="/" className="text-center block text-sm text-gray-500 hover:text-gray-700">
-            ← Back to Home
-          </a>
-        </div>
-      </div>
-    </div>
+        <a href="https://taskifi-demos.vercel.app/taskifiai/" className="taskifi-auth-home">← Back to TaskifiAI homepage</a>
+      </section>
+    </main>
   )
 }

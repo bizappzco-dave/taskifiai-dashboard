@@ -2,15 +2,25 @@
 
 Route
 - `POST /api/internal/totalsitedata/promote`
+- `POST /api/internal/totalsitedata/scan` (async queue enqueue)
+- `GET /api/internal/totalsitedata/scan/process` (queue observability/health)
+- `POST /api/internal/totalsitedata/scan/process` (queue worker processor)
 
 Authentication
 - Preferred: `Authorization: Bearer <TOTALSITEDATA_INTERNAL_SECRET>`
 - Also supported: `x-totalsitedata-secret: <TOTALSITEDATA_INTERNAL_SECRET>`
+- Alternative internal header: `x-internal-secret` (same value)
 
 Required environment
 - `TOTALSITEDATA_INTERNAL_SECRET`
 - `NEXT_PUBLIC_SUPABASE_URL` (or `SUPABASE_URL`) must be available to the Next.js runtime
 - `SUPABASE_SERVICE_ROLE_KEY` must be available to the Next.js runtime
+- Optional queue tuning environment:
+  - `TOTALSITEDATA_SCAN_RATE_LIMIT_WINDOW_SECONDS` (default `60`)
+  - `TOTALSITEDATA_SCAN_RATE_LIMIT_MAX_REQUESTS` (default `120`)
+  - `TOTALSITEDATA_SCAN_MAX_RETRIES` (default `3`)
+  - `TOTALSITEDATA_SCAN_DEDUPE_TTL_SECONDS` (default `3600`)
+  - `TOTALSITEDATA_SCAN_RESPONSE_CACHE_TTL_SECONDS` (default `30`)
 
 TotalSiteData production bridge environment
 - `TOTALSITEDATA_CRM_BRIDGE_URL=https://taskifiai-dashboard.vercel.app/api/internal/totalsitedata/promote`
@@ -37,14 +47,47 @@ Recommended request
 ```bash
 curl -X POST http://127.0.0.1:3010/api/internal/totalsitedata/promote \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOTALSITEDATA_INTERNAL_SECRET" \
+  -H "Authorization: Bearer <TOTALSITEDATA_INTERNAL_SECRET>" \\
   --data @tests/fixtures/totalsitedata-promotion.payload.json
 ```
 
 Smoke test helper
 - `scripts/smoke-totalsitedata-promotion.sh`
+- `scripts/smoke-totalsitedata-scan.sh`
 
-Usage
+Contract verification commands
+- `npm run totalsitedata:contract:test`
+- `npm run totalsitedata:smoke:promote`
+- `npm run totalsitedata:smoke:scan`
+- `npm run totalsitedata:smoke` (includes `totalsitedata:preflight`)
+- `npm run totalsitedata:preflight`
+- `npm run totalsitedata:verify`
+- `npm run totalsitedata:ci` (default safe for local dev)
+  - Runs typecheck and build, then contract tests.
+  - Skips `totalsitedata:verify` unless `TOTALSITEDATA_CI_VERIFY=1` or CI env var is set.
+- `TOTALSITEDATA_CI_SKIP_VERIFY=1 npm run totalsitedata:ci`
+  - Explicitly force safe mode locally.
+- `TOTALSITEDATA_CI_VERIFY=1 npm run totalsitedata:ci`
+  - Force full strict mode (including live verify) even outside CI.
+- `npm run totalsitedata:ci:local`
+  - Alias for `TOTALSITEDATA_CI_SKIP_VERIFY=1 npm run totalsitedata:ci`.
+- `npm run totalsitedata:ci:strict`
+  - Alias for `TOTALSITEDATA_CI_VERIFY=1 npm run totalsitedata:ci`.
+
+Note: `totalsitedata:verify` and smoke scripts require a reachable Supabase backend via `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` and intentionally run preflight checks first. Misconfigured placeholders (for example `example.supabase.co` or `public-*` keys) fail fast with a clear message before running smoke tests.
+
+Failure interpretation
+- **Build/setup/config boundary (non-backend-data):**
+  - `npx tsc --noEmit` / `npm run build` failures usually indicate code or required environment not available during compile-time (`NEXT_PUBLIC_SUPABASE_URL` missing, bad TS types).
+  - `totalsitedata:preflight` failures and explicit placeholder checks (for example `example.supabase.co`, `public-*` keys) are setup/config issues, not route regressions.
+- **Contract boundary:**
+  - `npm run totalsitedata:contract:test` failures indicate an API contract shape/auth expectation mismatch.
+- **Live backend-data boundary:**
+  - `500` with `PGRST116` + "Cannot coerce the result to a single JSON object" means the expected seeded anchor/client row was not found in Supabase.
+  - `23503` FK violations during scan enqueue mean payload/client id references do not exist in seed data.
+  - `409 target_client_id_required` means CRM route still needs a real client anchor for the current live data model.
+
+Use `TOTALSITEDATA_CI_VERIFY=1` only in seeded/validated environments; otherwise use `totalsitedata:ci:local` or the SKIP flag for safer local checks.
 ```bash
 PROMOTION_SECRET=your-secret \
 CLIENT_ID=real-client-uuid \
@@ -54,6 +97,82 @@ print(uuid.uuid4())
 PY
 ) \
 ./scripts/smoke-totalsitedata-promotion.sh
+```
+
+One-shot verification run
+```bash
+# Start the app first (example):
+# npm run dev -- --port 3010
+
+PROMOTION_SECRET=your-secret \
+SUPABASE_URL=https://your-real-supabase-ref.supabase.co \
+SUPABASE_ANON_KEY=ey... \
+SUPABASE_SERVICE_ROLE_KEY=ey... \
+TOTALSITEDATA_INTERNAL_SECRET=your-secret \
+npm run totalsitedata:verify
+```
+
+Scan-queue enqueue usage
+```bash
+# Wrapper script (scan + post in one command)
+# Requires PROMOTION_SECRET and, for real environments, a reachable API base with Supabase seeded.
+cd /home/dpmcg/workspace/repos/taskifiai-dashboard
+
+PROMOTION_SECRET=<TOTALSITEDATA_INTERNAL_SECRET> \
+TARGET_CLIENT_ID=<client uuid> \
+PROSPECT_ID=$(python3 - <<'PY'
+import uuid
+print(uuid.uuid4())
+PY
+) \
+bash scripts/website-checker-scan-and-post.sh example.com
+
+curl -X POST http://127.0.0.1:3010/api/internal/totalsitedata/scan \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOTAL...RET>" \
+  --data @tests/fixtures/totalsitedata-promotion.payload.json
+```
+
+Worker processing usage
+```bash
+curl -X POST http://127.0.0.1:3010/api/internal/totalsitedata/scan/process \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <TOTALSITEDATA_INTERNAL_SECRET>" \
+  --data '{"limit":5}'
+```
+
+Worker health/observability usage
+```bash
+curl -X GET "http://127.0.0.1:3010/api/internal/totalsitedata/scan/process?window_seconds=3600" \
+  -H "Authorization: Bearer <TOTALSITEDATA_INTERNAL_SECRET>"
+```
+
+Expected scan process response shape
+```json
+{
+  "success": true,
+  "processed": 1,
+  "results": [
+    {
+      "task_id": "<uuid>",
+      "status": "completed|requeued|cancelled",
+      "success": true,
+      "result": {
+        "success": true
+      }
+    }
+  ],
+  "queue": {
+    "kind": "totalsitedata_scan",
+    "pending": 0,
+    "in_progress": 0,
+    "completed": 1,
+    "cancelled": 0,
+    "retry_waiting": 0,
+    "dead_lettered_pending_24h": 0,
+    "recent_completed_24h": 1
+  }
+}
 ```
 
 Expected success response shape
